@@ -74,6 +74,10 @@ The merge required new compat headers in `contrib/win32/win32compat/inc/` to sat
 
 - The PKCS#11 client (`ssh-pkcs11-client.c`) uses the new upstream keyblob-based dispatch. The Windows agent's PKCS#11 key management in `keyagent-request.c` provides backward-compatible local key tracking.
 
+## Disclaimer
+
+This is an unofficial build and is not affiliated with or endorsed by the OpenSSH project or Microsoft. Use at your own risk. For production environments, evaluate thoroughly before deployment. Security issues in the underlying OpenSSH code should be reported to the upstream project.
+
 ## License
 
 OpenSSH is released under a [BSD license](LICENCE).
