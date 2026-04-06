@@ -1,89 +1,83 @@
-# Portable OpenSSH
+# OpenSSH for Windows 10.3p1
 
-[![C/C++ CI](../../actions/workflows/c-cpp.yml/badge.svg)](../../actions/workflows/c-cpp.yml)
-[![VM CI](../../actions/workflows/vm.yml/badge.svg)](../../actions/workflows/vm.yml)
-[![C/C++ CI self-hosted](https://github.com/openssh/openssh-portable-selfhosted/actions/workflows/selfhosted.yml/badge.svg)](https://github.com/openssh/openssh-portable-selfhosted/actions/workflows/selfhosted.yml)
-[![CIFuzz](../../actions/workflows/cifuzz.yml/badge.svg)](../../actions/workflows/cifuzz.yml)
-[![Fuzzing Status](https://oss-fuzz-build-logs.storage.googleapis.com/badges/openssh.svg)](https://issues.oss-fuzz.com/issues?q="Project:+openssh"+is:open)
-[![Coverity Status](https://scan.coverity.com/projects/21341/badge.svg)](https://scan.coverity.com/projects/openssh-portable)
+A Windows build of [OpenSSH 10.3p1](https://www.openssh.com/txt/release-10.3) based on the [PowerShell/openssh-portable](https://github.com/PowerShell/openssh-portable) Win32 fork.
 
-OpenSSH is a complete implementation of the SSH protocol (version 2) for secure remote login, command execution and file transfer. It includes a client ``ssh`` and server ``sshd``, file transfer utilities ``scp`` and ``sftp`` as well as tools for key generation (``ssh-keygen``), run-time key storage (``ssh-agent``) and a number of supporting programs.
+The official Win32-OpenSSH release is currently at 10.0p2. This project merges upstream OpenSSH 10.3p1 into the Win32 fork to bring post-quantum cryptography support and other improvements to Windows ahead of the official release.
 
-This is a port of OpenBSD's [OpenSSH](https://openssh.com) to most Unix-like operating systems, including Linux, OS X and Cygwin. Portable OpenSSH polyfills OpenBSD APIs that are not available elsewhere, adds sshd sandboxing for more operating systems and includes support for OS-native authentication and auditing (e.g. using PAM).
+## What's included
 
-## Documentation
+- **OpenSSH 10.3p1** features merged into the Win32 fork
+- **Post-quantum key exchange**: ML-KEM (mlkem768x25519-sha256) offered by default
+- **PQC negotiation warnings** when connecting to servers that don't support post-quantum key exchange
+- **DSA and XMSS support removed** (aligned with upstream)
+- **Key defaults aligned with upstream**: ed25519 default key type, 256-bit ECDSA
+- **PKCS#11 rewrite**: keyblob-based dispatch replacing legacy RSA_METHOD/EC_KEY_METHOD
 
-The official documentation for OpenSSH are the man pages for each tool:
+All 14 binaries build and link: `ssh`, `sshd`, `sshd-auth`, `sshd-session`, `scp`, `sftp`, `sftp-server`, `ssh-agent`, `ssh-add`, `ssh-keygen`, `ssh-keyscan`, `ssh-shellhost`, `ssh-sk-helper`, `ssh-pkcs11-helper`.
 
-* [ssh(1)](https://man.openbsd.org/ssh.1)
-* [sshd(8)](https://man.openbsd.org/sshd.8)
-* [ssh-keygen(1)](https://man.openbsd.org/ssh-keygen.1)
-* [ssh-agent(1)](https://man.openbsd.org/ssh-agent.1)
-* [scp(1)](https://man.openbsd.org/scp.1)
-* [sftp(1)](https://man.openbsd.org/sftp.1)
-* [ssh-keyscan(8)](https://man.openbsd.org/ssh-keyscan.8)
-* [sftp-server(8)](https://man.openbsd.org/sftp-server.8)
+## Building
 
-## Stable Releases
+### Prerequisites
 
-Stable release tarballs are available from a number of [download mirrors](https://www.openssh.com/portable.html#downloads). We recommend the use of a stable release for most users. Please read the [release notes](https://www.openssh.com/releasenotes.html) for details of recent changes and potential incompatibilities.
+- **Visual Studio 2022** with the C++ desktop development workload
+- **MSVC v143 Spectre-mitigated libs** (install via VS Installer, Individual Components)
+- **Windows SDK 10.0.22621.0** or later
+- **[vcpkg](https://github.com/microsoft/vcpkg)** -- clone, run `bootstrap-vcpkg.bat`, then `vcpkg integrate install`
 
-## Building Portable OpenSSH
+vcpkg handles all library dependencies automatically: LibreSSL 4.2.0, zlib 1.3.1, libfido2 1.16.0, libcbor 0.13.0.
 
-### Dependencies
+### Build
 
-Portable OpenSSH is built using autoconf and make. It requires a working C compiler, standard library and headers.
-
-``libcrypto`` from one of [LibreSSL](https://www.libressl.org/), [OpenSSL](https://www.openssl.org), [AWS-LC](https://github.com/aws/aws-lc) or [BoringSSL](https://github.com/google/boringssl) may also be used.  OpenSSH may be built without either of these, but the resulting binaries will have only a subset of the cryptographic algorithms normally available.
-
-[zlib](https://www.zlib.net/) is optional; without it transport compression is not supported.
-
-FIDO security token support needs [libfido2](https://github.com/Yubico/libfido2) and its dependencies and will be enabled automatically if they are found.
-
-In addition, certain platforms and build-time options may require additional dependencies; see README.platform for details about your platform.
-
-### Building a release
-
-Release tarballs and release branches in git include a pre-built copy of the ``configure`` script and may be built using:
-
-```
-tar zxvf openssh-X.YpZ.tar.gz
-cd openssh
-./configure # [options]
-make && make tests
+```powershell
+cd <repo-root>
+Import-Module .\contrib\win32\openssh\OpenSSHBuildHelper.psm1 -Force
+Start-OpenSSHBuild -Configuration Release -NativeHostArch x64
 ```
 
-See the [Build-time Customisation](#build-time-customisation) section below for configure options. If you plan on installing OpenSSH to your system, then you will usually want to specify destination paths.
+Binaries are written to `bin\x64\Release\`.
 
-### Building from git
+### Package
 
-If building from the git master branch, you'll need [autoconf](https://www.gnu.org/software/autoconf/) installed to build the ``configure`` script. The following commands will check out and build portable OpenSSH from git:
-
-```
-git clone https://github.com/openssh/openssh-portable # or https://anongit.mindrot.org/openssh.git
-cd openssh-portable
-autoreconf
-./configure
-make && make tests
+```powershell
+Start-OpenSSHPackage -Configuration Release -NativeHostArch x64
 ```
 
-### Build-time Customisation
+Produces `bin\x64\Release\OpenSSH-Win64.zip` and a symbols archive.
 
-There are many build-time customisation options available. All Autoconf destination path flags (e.g. ``--prefix``) are supported (and are usually required if you want to install OpenSSH).
+### MSI (optional)
 
-For a full list of available flags, run ``./configure --help`` but a few of the more frequently-used ones are described below. Some of these flags will require additional libraries and/or headers be installed.
+Requires [WiX Toolset v3.14](https://github.com/wixtoolset/wix3/releases) (the binaries zip, not an installer).
 
-Flag | Meaning
---- | ---
-``--with-pam`` | Enable [PAM](https://en.wikipedia.org/wiki/Pluggable_authentication_module) support. [OpenPAM](https://www.openpam.org/), [Linux PAM](http://www.linux-pam.org/) and Solaris PAM are supported.
-``--with-libedit`` | Enable [libedit](https://www.thrysoee.dk/editline/) support for sftp.
-``--with-kerberos5`` | Enable Kerberos/GSSAPI support. Both [Heimdal](https://www.h5l.org/) and [MIT](https://web.mit.edu/kerberos/) Kerberos implementations are supported.
-``--with-selinux`` | Enable [SELinux](https://en.wikipedia.org/wiki/Security-Enhanced_Linux) support.
+```powershell
+msbuild contrib\win32\install\openssh.wixproj `
+  /p:Platform=x64 /p:Configuration=Release `
+  /p:ProductVersion=10.3.0.0 `
+  /p:WixToolPath="<path-to-wix314>\" `
+  /p:SuppressIces="ICE18"
+```
 
-## Development
+## Origin
 
-Portable OpenSSH development is discussed on the [openssh-unix-dev mailing list](https://lists.mindrot.org/mailman/listinfo/openssh-unix-dev) ([archive mirror](https://marc.info/?l=openssh-unix-dev)). Bugs and feature requests are tracked on our [Bugzilla](https://bugzilla.mindrot.org/).
+This is a merge of:
 
-## Reporting bugs
+- **Base**: [PowerShell/openssh-portable](https://github.com/PowerShell/openssh-portable) `latestw_all` branch (OpenSSH 10.0p2 Win32 fork)
+- **Upstream**: [openssh/openssh-portable](https://github.com/openssh/openssh-portable) tag `V_10_3_P1`
 
-_Non-security_ bugs may be reported to the developers via [Bugzilla](https://bugzilla.mindrot.org/) or via the mailing list above. Security bugs should be reported to [openssh@openssh.com](mailto:openssh.openssh.com).
+Win32-specific changes (Windows service integration, process spawning via `posix_spawn`, Windows authentication, path handling) are preserved. Upstream changes to shared code (SOCKS parsing, certificate validation, PKCS#11 dispatch, key exchange) are taken from 10.3p1.
+
+### Windows compat layer additions
+
+The merge required new compat headers in `contrib/win32/win32compat/inc/` to satisfy upstream includes that assume Unix system headers: `sys/queue.h`, `sys/tree.h`, `endian.h`, `glob.h`, `ifaddrs.h`, `netgroup.h`, `nlist.h`, `paths.h`, `util.h`. These are either redirectors to existing `openbsd-compat` implementations or empty stubs for functionality guarded by `#ifdef`.
+
+## Known issues
+
+- Unit tests `unittest-misc` and `unittest-win32compat` have linker errors from upstream test infrastructure changes. All main binaries are unaffected.
+- The PKCS#11 client (`ssh-pkcs11-client.c`) uses the new upstream keyblob-based dispatch. The Windows agent's PKCS#11 key management in `keyagent-request.c` provides backward-compatible local key tracking.
+
+## License
+
+OpenSSH is released under a [BSD license](LICENCE).
+
+## Security
+
+Security issues in OpenSSH should be reported to [openssh@openssh.com](mailto:openssh@openssh.com). See [OpenSSH Security](https://www.openssh.com/security.html).
