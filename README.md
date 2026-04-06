@@ -22,7 +22,8 @@ All 14 binaries and all unit tests build cleanly: `ssh`, `sshd`, `sshd-auth`, `s
 - **Visual Studio 2022** with the C++ desktop development workload
 - **MSVC v143 Spectre-mitigated libs** (install via VS Installer, Individual Components)
 - **Windows SDK 10.0.22621.0** or later
-- **[vcpkg](https://github.com/microsoft/vcpkg)** -- clone, run `bootstrap-vcpkg.bat`, then `vcpkg integrate install`
+- **[vcpkg](https://github.com/microsoft/vcpkg)** -- clone anywhere, run `bootstrap-vcpkg.bat`, then `vcpkg integrate install`
+- **[.NET SDK](https://dotnet.microsoft.com/download) 6.0 or later** (only needed for the MSI installer)
 
 vcpkg handles all library dependencies automatically: LibreSSL 4.2.0, zlib 1.3.1, libfido2 1.16.0, libcbor 0.13.0.
 
@@ -36,7 +37,7 @@ Start-OpenSSHBuild -Configuration Release -NativeHostArch x64
 
 Binaries are written to `bin\x64\Release\`.
 
-### Package
+### Package (ZIP)
 
 ```powershell
 Start-OpenSSHPackage -Configuration Release -NativeHostArch x64
@@ -44,16 +45,17 @@ Start-OpenSSHPackage -Configuration Release -NativeHostArch x64
 
 Produces `bin\x64\Release\OpenSSH-Win64.zip` and a symbols archive.
 
-### MSI (optional)
+### Package (MSI)
 
-Requires [WiX Toolset v3.14](https://github.com/wixtoolset/wix3/releases) (the binaries zip, not an installer).
+WiX v6 and its extensions are pulled in automatically via NuGet -- no separate WiX install needed.
 
 ```powershell
-msbuild contrib\win32\install\openssh.wixproj `
-  /p:Platform=x64 /p:Configuration=Release `
-  /p:ProductVersion=10.3.0.0 `
-  /p:WixToolPath="<path-to-wix314>\"
+dotnet build contrib\win32\install\openssh.wixproj `
+  -p:Platform=x64 -p:Configuration=Release `
+  -p:ProductVersion=10.3.0.0
 ```
+
+Produces `contrib\win32\install\bin\x64\Release\openssh.msi`.
 
 ## Origin
 

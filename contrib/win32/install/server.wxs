@@ -1,4 +1,4 @@
-<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:firewall="http://schemas.microsoft.com/wix/FirewallExtension" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:firewall="http://wixtoolset.org/schemas/v4/wxs/firewall" xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
     <Fragment>
         <!-- Registry search to check if key for RedirectionGuard exists -->
         <Property Id="SSHDREGKEYEXISTS">
@@ -9,16 +9,16 @@
         <ComponentGroup Id="Server" Directory="INSTALLFOLDER">
             <ComponentGroupRef Id="Shared" />
             <Component>
-                <File Name="sftp-server.exe" KeyPath="yes" />
+                <File Id="sftp_server.exe" Name="sftp-server.exe" KeyPath="yes" />
             </Component>
             <Component>
-                <File Name="ssh-shellhost.exe" KeyPath="yes" />
+                <File Id="ssh_shellhost.exe" Name="ssh-shellhost.exe" KeyPath="yes" />
             </Component>
             <Component>
-                <File Name="sshd-auth.exe" KeyPath="yes" />
+                <File Id="sshd_auth.exe" Name="sshd-auth.exe" KeyPath="yes" />
             </Component>
             <Component>
-                <File Name="sshd-session.exe" KeyPath="yes" />
+                <File Id="sshd_session.exe" Name="sshd-session.exe" KeyPath="yes" />
             </Component>
             <Component>
                 <File Id="sshd.exe" Name="sshd.exe" KeyPath="yes" />
@@ -29,47 +29,20 @@
                         <PermissionEx Sddl="O:BAG:SYD:P(A;OICI;KA;;;SY)(A;OICI;KA;;;BA)" />
                     </RegistryKey>
                 </RegistryKey>
-                <ServiceInstall
-                    Name="sshd"
-                    DisplayName="OpenSSH SSH Server"
-                    Description="OpenSSH is a connectivity tool for remote login that uses the SSH protocol. It encrypts all traffic between client and server to eliminate eavesdropping, connection hijacking, and other attacks."
-                    Start="auto"
-                    Type="ownProcess"
-                    Interactive="no"
-                    ErrorControl="critical"
-                    Vital="yes">
-                    <util:ServiceConfig
-                        ResetPeriodInDays="1"
-                        FirstFailureActionType="restart"
-                        SecondFailureActionType="restart"
-                        ThirdFailureActionType="restart"
-                        />
+                <ServiceInstall Name="sshd" DisplayName="OpenSSH SSH Server" Description="OpenSSH is a connectivity tool for remote login that uses the SSH protocol. It encrypts all traffic between client and server to eliminate eavesdropping, connection hijacking, and other attacks." Start="auto" Type="ownProcess" Interactive="no" ErrorControl="critical" Vital="yes">
+                    <util:ServiceConfig ResetPeriodInDays="1" FirstFailureActionType="restart" SecondFailureActionType="restart" ThirdFailureActionType="restart" />
                 </ServiceInstall>
-                <ServiceControl
-                    Id="ControlSshd"
-                    Name="sshd"
-                    Start="install"
-                    Stop="both"
-                    Remove="uninstall" />
-                <firewall:FirewallException
-                    Id="sshd_allow"
-                    Name="OpenSSH SSH Server Preview (sshd)"
-                    Description="Inbound rule for OpenSSH SSH Server (sshd)"
-                    Program="[#sshd.exe]"
-                    Protocol="tcp"
-                    Port="22"
-                    Scope="any"
-                    Profile="private"
-                    />
+                <ServiceControl Id="ControlSshd" Name="sshd" Start="install" Stop="both" Remove="uninstall" />
+                <firewall:FirewallException Id="sshd_allow" Name="OpenSSH SSH Server Preview (sshd)" Description="Inbound rule for OpenSSH SSH Server (sshd)" Program="[#sshd.exe]" Protocol="tcp" Port="22" Scope="any" Profile="private" />
             </Component>
             <Component>
-                <File Name="sshd_config_default">
+                <File Id="sshd_config_default" Name="sshd_config_default">
                     <PermissionEx Sddl="O:BAG:SYD:PAI(A;;FA;;;SY)(A;;FA;;;BA)" />
                 </File>
             </Component>
             <!-- Permanent registry component - will persist through uninstall -->
-            <Component Id="SSHDInstallFlagComponent" Guid="*" Permanent="yes">
-                <Condition><![CDATA[NOT SSHDREGKEYEXISTS]]></Condition>
+            <Component Id="SSHDInstallFlagComponent" Permanent="yes" Condition="NOT SSHDREGKEYEXISTS">
+                
                     <RegistryKey Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\sshd.exe" ForceCreateOnInstall="yes">
                         <RegistryValue Name="MitigationOptions" Type="binary" Value="00000000000000000000000000000000000010" KeyPath="yes" />
                     </RegistryKey>
@@ -78,9 +51,9 @@
 
         <!-- Automatically add custom actions if referencing the Server component group. -->
         <SetProperty Id="SetPrivilegesOnSshd" Value="&quot;[SystemFolder]sc.exe&quot; privs sshd SeAssignPrimaryTokenPrivilege/SeTcbPrivilege/SeBackupPrivilege/SeRestorePrivilege/SeImpersonatePrivilege" Sequence="execute" Before="SetPrivilegesOnSshd" />
-        <CustomAction Id="SetPrivilegesOnSshd" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="check" Impersonate="no" />
+        <CustomAction Id="SetPrivilegesOnSshd" DllEntry="WixQuietExec" Execute="deferred" Return="check" Impersonate="no" BinaryRef="Wix4UtilCA_X86" />
         <InstallExecuteSequence>
-            <Custom Action="SetPrivilegesOnSshd" After="InstallServices"><![CDATA[&Server = 3]]></Custom>
+            <Custom Action="SetPrivilegesOnSshd" After="InstallServices" Condition="&amp;Server = 3" />
         </InstallExecuteSequence>
     </Fragment>
 </Wix>
