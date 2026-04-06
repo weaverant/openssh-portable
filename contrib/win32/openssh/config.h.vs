@@ -3,6 +3,10 @@
 /* config.h.  Generated from config.h.in by configure.  */
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* pledge() is a no-op on Windows; PLEDGE_EXTRA_INET is used as a string
+ * prefix in pledge calls and must be defined (empty on non-OpenBSD). */
+#define PLEDGE_EXTRA_INET ""
+
 /* Define if building universal (internal helper macro) */
 /* #undef AC_APPLE_UNIVERSAL_BUILD */
 

@@ -54,14 +54,58 @@ extern int remote_add_provider;
  * while system keys (host keys) in HKLM
  */
 
-extern struct sshkey *
-lookup_key(const struct sshkey *k);
+/*
+ * Local PKCS11 key management for the Windows agent.
+ * Previously these were in ssh-pkcs11-client.c but the upstream rewrite
+ * removed them. Provide them here for the agent's use.
+ */
+#include "openbsd-compat/sys-queue.h"
 
-extern void
-add_key(struct sshkey *k, char *name);
+struct pkcs11_keyinfo {
+	struct sshkey	*key;
+	char		*providername;
+	TAILQ_ENTRY(pkcs11_keyinfo) next;
+};
 
-extern void
-del_all_keys();
+static TAILQ_HEAD(, pkcs11_keyinfo) pkcs11_keylist =
+    TAILQ_HEAD_INITIALIZER(pkcs11_keylist);
+
+struct sshkey *
+lookup_key(const struct sshkey *k)
+{
+	struct pkcs11_keyinfo *ki;
+
+	TAILQ_FOREACH(ki, &pkcs11_keylist, next) {
+		if (sshkey_equal(k, ki->key))
+			return (ki->key);
+	}
+	return (NULL);
+}
+
+void
+add_key(struct sshkey *k, char *name)
+{
+	struct pkcs11_keyinfo *ki;
+
+	ki = xcalloc(1, sizeof(*ki));
+	ki->providername = xstrdup(name);
+	ki->key = k;
+	TAILQ_INSERT_TAIL(&pkcs11_keylist, ki, next);
+}
+
+void
+del_all_keys(void)
+{
+	struct pkcs11_keyinfo *ki, *nxt;
+
+	for (ki = TAILQ_FIRST(&pkcs11_keylist); ki; ki = nxt) {
+		nxt = TAILQ_NEXT(ki, next);
+		TAILQ_REMOVE(&pkcs11_keylist, ki, next);
+		free(ki->providername);
+		sshkey_free(ki->key);
+		free(ki);
+	}
+}
 
 static int
 get_user_root(struct agent_connection* con, HKEY *root)
