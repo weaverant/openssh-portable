@@ -334,13 +334,6 @@ function Start-OpenSSHPackage
         $packageName = "OpenSSH-ARM"
     }
 
-    while((($service = Get-Service ssh-agent -ErrorAction SilentlyContinue) -ne $null) -and ($service.Status -ine 'Stopped'))
-    {
-        Stop-Service ssh-agent -Force
-        #sleep to wait the servicelog file write
-        Start-Sleep 5
-    }
-
     $packageDir = Join-Path $buildDir $packageName
     Remove-Item $packageDir -Recurse -Force -ErrorAction SilentlyContinue
     New-Item $packageDir -Type Directory | Out-Null

@@ -14,7 +14,13 @@
 
 extern void log_init(char *av0, int level, int facility, int on_stderr);
 
-void 
+void
+benchmarks(void)
+{
+	printf("no benchmarks\n");
+}
+
+void
 tests()
 {
 	_set_abort_behavior(0, 1);

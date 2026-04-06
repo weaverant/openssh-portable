@@ -438,6 +438,12 @@
       <ExcludedFromBuild Condition="$(UseOpenSSL)==false">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\..\regress\unittests\misc\test_ptimeout.c" />
+    <ClCompile Include="$(OpenSSH-Src-Path)regress\unittests\misc\test_misc.c">
+      <ExcludedFromBuild Condition="$(UseOpenSSL)==false">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="$(OpenSSH-Src-Path)regress\unittests\misc\test_xextendf.c">
+      <ExcludedFromBuild Condition="$(UseOpenSSL)==false">true</ExcludedFromBuild>
+    </ClCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

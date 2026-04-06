@@ -13,7 +13,7 @@ The official Win32-OpenSSH release is currently at 10.0p2. This project merges u
 - **Key defaults aligned with upstream**: ed25519 default key type, 256-bit ECDSA
 - **PKCS#11 rewrite**: keyblob-based dispatch replacing legacy RSA_METHOD/EC_KEY_METHOD
 
-All 14 binaries build and link: `ssh`, `sshd`, `sshd-auth`, `sshd-session`, `scp`, `sftp`, `sftp-server`, `ssh-agent`, `ssh-add`, `ssh-keygen`, `ssh-keyscan`, `ssh-shellhost`, `ssh-sk-helper`, `ssh-pkcs11-helper`.
+All 14 binaries and all unit tests build cleanly: `ssh`, `sshd`, `sshd-auth`, `sshd-session`, `scp`, `sftp`, `sftp-server`, `ssh-agent`, `ssh-add`, `ssh-keygen`, `ssh-keyscan`, `ssh-shellhost`, `ssh-sk-helper`, `ssh-pkcs11-helper`.
 
 ## Building
 
@@ -52,8 +52,7 @@ Requires [WiX Toolset v3.14](https://github.com/wixtoolset/wix3/releases) (the b
 msbuild contrib\win32\install\openssh.wixproj `
   /p:Platform=x64 /p:Configuration=Release `
   /p:ProductVersion=10.3.0.0 `
-  /p:WixToolPath="<path-to-wix314>\" `
-  /p:SuppressIces="ICE18"
+  /p:WixToolPath="<path-to-wix314>\"
 ```
 
 ## Origin
@@ -71,7 +70,6 @@ The merge required new compat headers in `contrib/win32/win32compat/inc/` to sat
 
 ## Known issues
 
-- Unit tests `unittest-misc` and `unittest-win32compat` have linker errors from upstream test infrastructure changes. All main binaries are unaffected.
 - The PKCS#11 client (`ssh-pkcs11-client.c`) uses the new upstream keyblob-based dispatch. The Windows agent's PKCS#11 key management in `keyagent-request.c` provides backward-compatible local key tracking.
 
 ## License

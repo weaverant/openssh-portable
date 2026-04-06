@@ -656,7 +656,6 @@ privsep_preauth(struct ssh *ssh)
 	}
 	else { /* parent */
 		posix_spawn_file_actions_t actions;
-		int status;
 
 		if (posix_spawn_file_actions_init(&actions) != 0 ||
 		    posix_spawn_file_actions_adddup2(&actions, io_sock_in, STDIN_FILENO) != 0 ||
@@ -685,12 +684,7 @@ privsep_preauth(struct ssh *ssh)
 		close(pmonitor->m_recvfd);
 		close(pmonitor->m_log_sendfd);
 		monitor_child_preauth(ssh, pmonitor);
-		while (waitpid(pid, &status, 0) < 0) {
-			if (errno == EINTR)
-				continue;
-			pmonitor->m_pid = -1;
-			fatal("%s: waitpid: %s", __func__, strerror(errno));
-		}
+		/* waitpid is already called inside monitor_child_preauth() */
 		privsep_is_preauth = 0;
 		pmonitor->m_pid = -1;
 		return 1;

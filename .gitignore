@@ -37,3 +37,13 @@ sshd-auth
 !regress/unittests/**/Makefile
 tags
 
+tests/temp/
+
+# Win32 build artifacts
+bin/
+contrib/win32/install/bin/
+contrib/win32/install/obj/
+contrib/win32/openssh/lib/
+contrib/win32/openssh/x64/
+contrib/win32/openssh/vcpkg_installed/
+contrib/win32/openssh/*.log
