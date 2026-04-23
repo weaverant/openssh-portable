@@ -71,6 +71,14 @@ Expect the same areas next time.
   `PLEDGE_EXTRA_INET` additions. Add any new upstream feature macros.
 - `paths.targets`, `OpenSSHBuildHelper.psm1` — MSBuild plumbing; rarely
   conflicts but check when upstream changes its build.
+- `version.rc` — Windows PE resource block. Bump `FILEVERSION`,
+  `PRODUCTVERSION`, `FileVersion`, and `ProductVersion` strings to match
+  the upstream release. Easy to miss because `version.h` already carries
+  the correct `SSH_WINDOWS_VERSION` / `SSH_PORTABLE` macros, so the SSH
+  protocol banner is right even when `version.rc` is stale — only
+  Explorer's file-properties / WER reports / `!analyze` expose the lie.
+  Missed on the 10.3p1 merge; installed binaries showed "10.0p2" in
+  WER dumps despite being built from 10.3p1 source.
 
 ### `contrib/win32/win32compat/inc/` — header shims
 
@@ -112,6 +120,19 @@ Some upstream files carry Windows-specific edits. Recurring ones:
 - **`ssh_packet_set_interactive` call sites** — the signature changed in
   10.3p1; Win32 compat code was updated to match. Recheck on signature
   changes.
+- **`sshkey.c` — `sshkey_prekey_alloc` `#ifdef WINDOWS` gate.** Upstream
+  nests the Windows branch inside `#if HAVE_MMAP`, which is never defined
+  on Windows, so alloc falls through to `calloc()`. Meanwhile
+  `sshkey_prekey_free`'s `#ifdef WINDOWS` branch is at the top level and
+  calls `VirtualFree()` on that calloc pointer — fails silently, memory
+  never released. Result: a 16 KB `SSHKEY_SHIELD_PREKEY_LEN` buffer is
+  leaked on every host-key re-shield, which on Windows happens on every
+  accept via `pack_hostkeys`. Heap-pressure crashes were observed within
+  ~38 seconds under moderate connection load (SSH.NET smoke tests). Fix
+  moves the Windows branch to the outer `#ifdef` so both allocate and
+  free use `VirtualAlloc`/`VirtualFree` consistently. Watch this function
+  on every merge — if upstream reorganises the preprocessor gates, our
+  fix needs to follow.
 
 ## Conventions during a merge
 
@@ -147,3 +168,24 @@ The Win32 base (`win32/latestw_all`) is at 10.0p2. Every upstream release
 after that merges through us, not through PowerShell — expect the Win32
 compat layer to need more adjustment the further upstream moves ahead
 of `latestw_all`.
+
+## Windows runtime quirks
+
+### Signal numbers in log output are not POSIX
+
+The Win32 compat layer renumbers signals in
+`contrib/win32/win32compat/inc/signal.h` — for example `SIGTERM=8`,
+`SIGFPE=15` (inverted from POSIX). Upstream log messages such as
+
+    Received signal 8; terminating.
+
+come from `sshd.c:977` (upstream OpenBSD, introduced 2021-06-04) and
+print the raw integer with `%d`. On this Win32 build "signal 8" means
+SIGTERM, not SIGFPE. Typical triggers: `CTRL_LOGOFF_EVENT` at user
+logoff, `CTRL_SHUTDOWN_EVENT` at reboot, or the SCM stopping the
+service (see `native_sig_handler` in
+`contrib/win32/win32compat/signal.c`). This is a clean shutdown — the
+SCM restarts the service a few seconds later. Not a crash.
+
+Don't patch the upstream `logit` call to "fix" this — it costs merge
+friction for a cosmetic change. Document here instead.

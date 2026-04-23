@@ -47,3 +47,11 @@ contrib/win32/openssh/lib/
 contrib/win32/openssh/x64/
 contrib/win32/openssh/vcpkg_installed/
 contrib/win32/openssh/*.log
+OpenSSH-Win64*/
+UnitTests/
+build-output/
+
+# Machine-local build configuration, generated each build by
+# OpenSSHBuildHelper.psm1 and config.vcxproj's PreBuildEvent respectively.
+contrib/win32/openssh/paths.local.targets
+contrib/win32/win32compat/inc/crtheaders.h
