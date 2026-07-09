@@ -1,7 +1,8 @@
 # Upstream Merge Notes
 
 How to merge a new upstream OpenSSH release into this Win32 fork. Written from
-the 10.3p1 merge; update this file as each new merge teaches us something.
+the 10.3p1 and 10.4p1 merges; update this file as each new merge teaches us
+something.
 
 ## Remotes
 
@@ -67,8 +68,19 @@ Expect the same areas next time.
   `unittest-*.vcxproj` — add/remove source files whenever upstream adds
   or removes `.c` files. 10.3p1 added `ssherr-libcrypto.c`, `misc-agent.c`,
   removed `ssh-dss.c`, `ssh-xmss.c`, `xmss_*.c`, `sshkey-xmss.c`.
+  10.4p1 added `libcrux-mlkem-mldsa.c` and `ssh-mldsa-eddsa.c` to
+  `libssh.vcxproj`. mlkem768's implementation moved out of the header-only
+  `libcrux_mlkem768_sha3.h` (deleted) into the new `libcrux-mlkem-mldsa.c`
+  translation unit; since the Win32 build enables `USE_MLKEM768X25519`,
+  omitting that `.c` fails the link with unresolved `crypto_kem_mlkem768_*`.
 - `config.h.vs` — Windows-only `config.h`. Keep our `S_ISSOCK` macro and
   `PLEDGE_EXTRA_INET` additions. Add any new upstream feature macros.
+  10.4p1 added `USE_MLDSA` (matches upstream's default; registers the
+  `mldsa44-ed25519` key type and pulls in `ssh-mldsa-eddsa.c`). Upstream
+  gates the three PQ algs — `USE_SNTRUP761X25519`, `USE_MLKEM768X25519`,
+  `USE_MLDSA` — together; keep them enabled together. With `USE_MLDSA` off,
+  `unittest-sshkey` fails at `KEY_MLDSA44_ED25519` (`sshkey_new` returns
+  NULL for the unregistered type).
 - `paths.targets`, `OpenSSHBuildHelper.psm1` — MSBuild plumbing; rarely
   conflicts but check when upstream changes its build.
 - `version.rc` — Windows PE resource block. Bump `FILEVERSION`,
@@ -133,6 +145,22 @@ Some upstream files carry Windows-specific edits. Recurring ones:
   free use `VirtualAlloc`/`VirtualFree` consistently. Watch this function
   on every merge — if upstream reorganises the preprocessor gates, our
   fix needs to follow.
+- **`servconf.c` — `#ifdef WINDOWS` around `sshd_session_path` /
+  `sshd_auth_path`.** Windows uses `derelativise_path()` where upstream
+  uses `xstrdup()`; keep the guard. 10.4p1 also dropped the
+  `refuse_connection == -1` default in `fill_default_server_options` —
+  upstream now zero-inits via `memset` in `initialize_server_options` and
+  removed the `-1` sentinel, so take the removal (our leftover default was
+  dead code).
+- **`servconf.h` — take upstream `--theirs` on wholesale reorganisation.**
+  10.4p1 made `ServerOptions` macro-based (`SSHCONF_STRARRAY(...)`); our
+  only edit was an obsolete `uint`→`u_int` typo, so upstream's version was
+  correct outright. Hand-merging a struct reorg risks duplicate or missing
+  members.
+- **`readconf.c` — `= NULL` init on `def_*` in `fill_default_options`.**
+  Our defensive init (not in pristine upstream); keep it. 10.4p1 changed
+  `ret = 0` to `ret = -1` for a new `goto fail` cleanup path — take
+  upstream's `ret = -1`.
 
 ## Conventions during a merge
 
@@ -151,10 +179,16 @@ Some upstream files carry Windows-specific edits. Recurring ones:
 
 1. **Build all 14 main binaries** from `contrib/win32/openssh` solution.
    Build-clean is the bar; warnings are acceptable.
-2. **Build unit tests.** `unittest-misc` and `unittest-win32compat` often
-   break first because upstream's test infrastructure churns (new
+2. **Build and run unit tests.** `unittest-misc` and `unittest-win32compat`
+   often break first because upstream's test infrastructure churns (new
    `test_*.c` files, new stubs needed). Add missing sources to the
    `.vcxproj`; add stubs for `benchmarks()` etc. to win32compat tests.
+   Running them: `unittest-sshkey` / `unittest-hostkeys` need `-d testdata`;
+   `unittest-win32compat`'s symlink tests (from ~test #39) need elevation or
+   Developer Mode — unelevated they fail on `symlink() = -1`, which is
+   environmental, not a regression. 10.4p1 added `regress/unittests/crypto`
+   and `regress/unittests/servconf` upstream; neither is wired into the
+   Win32 solution.
 3. **Smoke test interactive login** — password auth especially, since
    `FORK_NOT_SUPPORTED` regressions show up here.
 4. **Smoke test `scp` and `sftp`** — file transfer path.
