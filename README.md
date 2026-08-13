@@ -1,13 +1,14 @@
-# OpenSSH for Windows 10.3p1
+# OpenSSH for Windows 10.5p1
 
-A Windows build of [OpenSSH 10.3p1](https://www.openssh.com/txt/release-10.3) based on the [PowerShell/openssh-portable](https://github.com/PowerShell/openssh-portable) Win32 fork.
+A Windows build of [OpenSSH 10.5p1](https://www.openssh.com/txt/release-10.5) based on the [PowerShell/openssh-portable](https://github.com/PowerShell/openssh-portable) Win32 fork.
 
-The official Win32-OpenSSH release is currently at 10.0p2. This project merges upstream OpenSSH 10.3p1 into the Win32 fork to bring post-quantum cryptography support and other improvements to Windows ahead of the official release.
+The official Win32-OpenSSH release is currently at 10.0p2. This project merges upstream OpenSSH 10.5p1 into the Win32 fork to bring post-quantum cryptography support and other improvements to Windows ahead of the official release.
 
 ## What's included
 
-- **OpenSSH 10.3p1** features merged into the Win32 fork
-- **Post-quantum key exchange**: ML-KEM (mlkem768x25519-sha256) offered by default
+- **OpenSSH 10.5p1** features merged into the Win32 fork
+- **Post-quantum key exchange**: ML-KEM (mlkem768x25519-sha256) offered by default, plus mlkem768nistp256-sha256
+- **Post-quantum signatures**: `mldsa44-ed25519` host and user keys built in (upstream pulled it from the default algorithm list for the 10.5 release; it returns in a later one)
 - **PQC negotiation warnings** when connecting to servers that don't support post-quantum key exchange
 - **DSA and XMSS support removed** (aligned with upstream)
 - **Key defaults aligned with upstream**: ed25519 default key type, 256-bit ECDSA
@@ -25,7 +26,7 @@ All 14 binaries and all unit tests build cleanly: `ssh`, `sshd`, `sshd-auth`, `s
 - **[vcpkg](https://github.com/microsoft/vcpkg)** -- clone anywhere, run `bootstrap-vcpkg.bat`, then `vcpkg integrate install`
 - **[.NET SDK](https://dotnet.microsoft.com/download) 6.0 or later** (only needed for the MSI installer)
 
-vcpkg handles all library dependencies automatically: LibreSSL 4.2.0, zlib 1.3.1, libfido2 1.16.0, libcbor 0.13.0.
+vcpkg handles all library dependencies automatically: LibreSSL 4.2.0, zlib 1.3.2, libfido2 1.16.0, libcbor 0.14.0.
 
 ### Build
 
@@ -52,7 +53,7 @@ WiX v6 and its extensions are pulled in automatically via NuGet -- no separate W
 ```powershell
 dotnet build contrib\win32\install\openssh.wixproj `
   -p:Platform=x64 -p:Configuration=Release `
-  -p:ProductVersion=10.3.0.0
+  -p:ProductVersion=10.5.0.0
 ```
 
 Produces `contrib\win32\install\bin\x64\Release\openssh.msi`.
@@ -62,9 +63,9 @@ Produces `contrib\win32\install\bin\x64\Release\openssh.msi`.
 This is a merge of:
 
 - **Base**: [PowerShell/openssh-portable](https://github.com/PowerShell/openssh-portable) `latestw_all` branch (OpenSSH 10.0p2 Win32 fork)
-- **Upstream**: [openssh/openssh-portable](https://github.com/openssh/openssh-portable) tag `V_10_3_P1`
+- **Upstream**: [openssh/openssh-portable](https://github.com/openssh/openssh-portable) tag `V_10_5_P1`
 
-Win32-specific changes (Windows service integration, process spawning via `posix_spawn`, Windows authentication, path handling) are preserved. Upstream changes to shared code (SOCKS parsing, certificate validation, PKCS#11 dispatch, key exchange) are taken from 10.3p1.
+Win32-specific changes (Windows service integration, process spawning via `posix_spawn`, Windows authentication, path handling) are preserved. Upstream changes to shared code (SOCKS parsing, certificate validation, PKCS#11 dispatch, key exchange) are taken from 10.5p1.
 
 ### Windows compat layer additions
 
