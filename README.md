@@ -51,9 +51,9 @@ Produces `bin\x64\Release\OpenSSH-Win64.zip` and a symbols archive.
 WiX v6 and its extensions are pulled in automatically via NuGet -- no separate WiX install needed.
 
 ```powershell
-dotnet build contrib\win32\install\openssh.wixproj `
+dotnet build contrib\win32\install\openssh.wixproj -t:Rebuild `
   -p:Platform=x64 -p:Configuration=Release `
-  -p:ProductVersion=10.5.0.0
+  -p:ProductVersion=10.5.1
 ```
 
 Produces `contrib\win32\install\bin\x64\Release\openssh.msi`.

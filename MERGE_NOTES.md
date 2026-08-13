@@ -255,14 +255,16 @@ Some upstream files carry Windows-specific edits. Recurring ones:
    Note `ssh-keygen -Y verify` reads the signed data from **stdin** — without
    a redirect it hangs, looking like a broken binary.
 4. **Smoke test interactive login** — password auth especially, since
-   `FORK_NOT_SUPPORTED` regressions show up here. **Needs an elevated shell**:
-   Win32 sshd requires `SeTcbPrivilege` to build the user token, so
-   unelevated it fails auth for reasons that have nothing to do with the
-   merge. Run it on a spare port, never against the installed service.
+   `FORK_NOT_SUPPORTED` regressions show up here. Install the MSI and test
+   the real service: a hand-started sshd fails password auth at
+   `CreateProcessAsUserW ... 1314` no matter how elevated, because
+   `get_user_token()` only takes the privileged LSA path as SYSTEM.
 5. **Smoke test `scp` and `sftp`** — file transfer path.
 6. **Build the MSI** — `contrib/win32/install/`. WiX v6 (migrated in
    5b8de34db); no manual WiX download needed. Pass the version explicitly
-   (`-p:ProductVersion=<X>.<Y>.0.0`); the wixproj defaults to `1.0.0`.
+   (`-p:ProductVersion=<X>.<Y>.<N>`, matching `version.rc`'s `p<N>` field);
+   the wixproj defaults to `1.0.0`. Use `-t:Rebuild` — a changed property
+   alone does not rebuild the MSI.
 7. **Tag** `v<X>.<Y>p<N>-win32` once verification passes.
 
 Scripting these from Git Bash: drive the binaries from **bash, not
