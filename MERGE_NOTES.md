@@ -1,8 +1,8 @@
 # Upstream Merge Notes
 
 How to merge a new upstream OpenSSH release into this Win32 fork. Written from
-the 10.3p1 and 10.4p1 merges; update this file as each new merge teaches us
-something.
+the 10.3p1, 10.4p1 and 10.5p1 merges; update this file as each new merge
+teaches us something.
 
 ## Remotes
 
@@ -21,13 +21,19 @@ git remote add openssh https://github.com/openssh/openssh-portable.git
 git remote add win32   https://github.com/PowerShell/openssh-portable.git
 ```
 
+**Check the remotes actually exist before starting.** On the 10.5p1 merge both
+were missing from the working clone while stale `remotes/win32/*` tracking refs
+survived — so `git log win32/latestw_all` answered from a months-old snapshot
+and only `git fetch` revealed the remote was gone. A tracking ref is not proof
+of a configured remote.
+
 ## What we track
 
 - New releases from `openssh/openssh-portable` — tagged `V_<X>_<Y>_P<N>`
   (e.g. `V_10_3_P1`, `V_10_3_P2`). Both feature releases and portable-only
   security patches matter.
 - Occasional updates to `win32/latestw_all` (PowerShell/openssh-portable).
-  Infrequent; last moved 2026-02-02. Worth a look before each merge but not
+  Infrequent; last moved 2026-08-03. Worth a look before each merge but not
   a blocker if nothing changed.
 
 Monitoring is currently a GitHub release watch on `openssh/openssh-portable`.
@@ -43,11 +49,19 @@ git fetch win32 latestw_all
 # NOT from latestw_all — we are accumulating our own Win32 fixes.
 git checkout -b merge-<X>.<Y>p<N> origin/HEAD
 
-# Optional: if win32/latestw_all has moved since our last base, pull it first.
+# If win32/latestw_all has moved since our last base, merge it FIRST, as its
+# own commit. Doing it after the release tag means resolving the same
+# contrib/win32/openssh project files twice, in the harder direction.
 # git merge win32/latestw_all
 
 git merge V_<X>_<Y>_P<N>    # resolve conflicts — see hotspots below
 ```
+
+Merging `latestw_all` first gives the release merge **two merge bases**, so git
+builds a virtual base and the generated release artifacts (`configure`,
+`config.h.in`, `ChangeLog`, the `*.0` man pages) arrive as `add/add` conflicts
+instead of clean merges. Take upstream for all of them — they are generated,
+we never hand-edit them.
 
 Then build, fix, test, tag:
 
@@ -73,6 +87,14 @@ Expect the same areas next time.
   `libcrux_mlkem768_sha3.h` (deleted) into the new `libcrux-mlkem-mldsa.c`
   translation unit; since the Win32 build enables `USE_MLKEM768X25519`,
   omitting that `.c` fails the link with unresolved `crypto_kem_mlkem768_*`.
+  10.5p1 added `kexmlkem768ecdh.c` (mlkem768nistp256-sha256).
+  Fastest way to catch these: extract `LIBSSH_OBJS` from `Makefile.in`, map
+  `.o`→`.c`, and diff against the `ClCompile` entries in `libssh.vcxproj`.
+  Four names always show up as missing and are absent **by design** — don't
+  "fix" them: `ttymodes.c` (superseded by `win32compat/ttymodes_windows.c`),
+  `umac128.c` (aliased to `umac.c` via `#define`s in `config.h.vs`),
+  `ed25519-openssl.c` (gated on `OPENSSL_HAS_ED25519`, which we don't define),
+  and `sftp-realpath.c` (Windows has its own `realpath` in `win32compat`).
 - `config.h.vs` — Windows-only `config.h`. Keep our `S_ISSOCK` macro and
   `PLEDGE_EXTRA_INET` additions. Add any new upstream feature macros.
   10.4p1 added `USE_MLDSA` (matches upstream's default; registers the
@@ -81,8 +103,20 @@ Expect the same areas next time.
   `USE_MLDSA` — together; keep them enabled together. With `USE_MLDSA` off,
   `unittest-sshkey` fails at `KEY_MLDSA44_ED25519` (`sshkey_new` returns
   NULL for the unregistered type).
+  10.5p1 made ECC mandatory and deleted `OPENSSL_HAS_ECC` and
+  `OPENSSL_HAS_NISTP256/384/521` from `config.h.in`; nothing in the tree
+  reads them any more, so our `config.h.vs` defines are now dead — as is the
+  `-NoOpenSSL` branch in `OpenSSHBuildHelper.psm1` that strips two of them.
+  Harmless, but don't add them back. Upstream's new `USE_BRAINPOOLP256R1` is
+  equally vestigial: they removed `mlkem768brainpoolp256r1-sha256` before
+  release, so nothing references it. Don't define it.
 - `paths.targets`, `OpenSSHBuildHelper.psm1` — MSBuild plumbing; rarely
-  conflicts but check when upstream changes its build.
+  conflicts but check when upstream changes its build. We keep
+  `WindowsSDKVersion` out of the tracked file (generated per-machine into
+  gitignored `paths.local.targets`), but `ZLibName` must stay: win32 #849
+  replaced the hardcoded `zlib.lib` in eight vcxproj files with
+  `$(ZLibName)`, so dropping the definition silently expands it to empty and
+  zlib stops linking.
 - `version.rc` — Windows PE resource block. Bump `FILEVERSION`,
   `PRODUCTVERSION`, `FileVersion`, and `ProductVersion` strings to match
   the upstream release. Easy to miss because `version.h` already carries
@@ -112,6 +146,20 @@ Existing shims touched by 10.3p1: `sys/queue.h`, `sys/tree.h`, `sys/stat.h`,
 - `pwd.c` — Windows has no `sshd` privsep user; `getpwnam("sshd")` always
   fails. The `lookup_sid` debug message is at level 3 so it only shows
   under `-ddd`. Preserve this.
+- `ssh-agent/agent.h` — **the include order is load-bearing in both
+  directions; read the comment there before reordering anything.**
+  `config.h` must come *before* `Windows.h` (it defines `WIN32_LEAN_AND_MEAN`,
+  without which Windows.h pulls winsock 1 and collides with the WinSock2.h
+  that config.h's own `signal.h` shim brings in) and *before* every OpenSSH
+  header (10.5's `sshbuf.h` defines `BIGNUM`/`EC_KEY`/`EC_GROUP`/`EC_POINT`/
+  `EVP_PKEY` to `void` when `WITH_OPENSSL` is unset and, unlike `sshkey.h`,
+  never undefines them — so a later `<openssl/*.h>` gets
+  `typedef struct evp_pkey_st void;`). Because `WIN32_LEAN_AND_MEAN` also
+  drops `wincrypt.h`, `DATA_BLOB`/`CryptProtectData` need an explicit
+  `#include <wincrypt.h>`. Autoconf builds never hit any of this: `includes.h`
+  puts `config.h` first in every translation unit. We also added the missing
+  `#undef` block to `sshbuf.h` as a belt-and-braces fix — worth pushing
+  upstream, and worth re-checking whether upstream fixed it themselves.
 
 ### `openbsd-compat/`
 
@@ -174,6 +222,13 @@ Some upstream files carry Windows-specific edits. Recurring ones:
 - **Our README replaces upstream's.** After each merge, restore this
   fork's README (prerequisites, Windows build steps, known issues).
   Upstream's README will clobber it in a fast-forward-heavy merge.
+- **Restoring the README is not the same as updating it.** The 10.4p1 merge
+  kept our README and left every version string saying 10.3p1, so the GitHub
+  landing page advertised the wrong release for a full cycle. Grep it for the
+  old version and fix the title, the release link, the feature list, the
+  `-p:ProductVersion=` example, the `V_<X>_<Y>_P<N>` tag reference, and the
+  vcpkg dependency versions. The repo **About** blurb is GitHub metadata, not
+  a file — it goes stale invisibly and needs `gh repo edit --description`.
 
 ## Post-merge verification checklist
 
@@ -189,12 +244,33 @@ Some upstream files carry Windows-specific edits. Recurring ones:
    environmental, not a regression. 10.4p1 added `regress/unittests/crypto`
    and `regress/unittests/servconf` upstream; neither is wired into the
    Win32 solution.
-3. **Smoke test interactive login** — password auth especially, since
-   `FORK_NOT_SUPPORTED` regressions show up here.
-4. **Smoke test `scp` and `sftp`** — file transfer path.
-5. **Build the MSI** — `contrib/win32/install/`. WiX v6 (migrated in
-   5b8de34db); no manual WiX download needed.
-6. **Tag** `v<X>.<Y>p<N>-win32` once verification passes.
+3. **Checks that need neither elevation nor credentials** — worth running
+   first, because they catch most of what a merge breaks:
+   `ssh -V` and the PE metadata (`(Get-Item ssh.exe).VersionInfo`) must both
+   show the new version; `ssh -Q kex` / `-Q key` must list the PQ algorithms
+   (proof the new `kex*.c` actually linked); `ssh-keygen` generate +
+   `-Y sign`/`-Y verify` round-trip per key type, including a deliberately
+   tampered payload that must be rejected; `ssh-keyscan -p 22 127.0.0.1`
+   against any live sshd for a full KEX handshake; and `sshd -t -f <config>`.
+   Note `ssh-keygen -Y verify` reads the signed data from **stdin** — without
+   a redirect it hangs, looking like a broken binary.
+4. **Smoke test interactive login** — password auth especially, since
+   `FORK_NOT_SUPPORTED` regressions show up here. **Needs an elevated shell**:
+   Win32 sshd requires `SeTcbPrivilege` to build the user token, so
+   unelevated it fails auth for reasons that have nothing to do with the
+   merge. Run it on a spare port, never against the installed service.
+5. **Smoke test `scp` and `sftp`** — file transfer path.
+6. **Build the MSI** — `contrib/win32/install/`. WiX v6 (migrated in
+   5b8de34db); no manual WiX download needed. Pass the version explicitly
+   (`-p:ProductVersion=<X>.<Y>.0.0`); the wixproj defaults to `1.0.0`.
+7. **Tag** `v<X>.<Y>p<N>-win32` once verification passes.
+
+Scripting these from Git Bash: drive the binaries from **bash, not
+PowerShell**. PowerShell's native empty-argument passing swallows
+`-N ""`, so `ssh-keygen` sits waiting for a passphrase that never comes and
+the whole run looks like a hang. Also give `sshd -t` an absolute Windows
+path — a POSIX-style relative `-f` path gets mangled and reports
+"No such file or directory".
 
 ## Version floor
 
