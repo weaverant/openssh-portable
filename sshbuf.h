@@ -435,4 +435,18 @@ u_int	sshbuf_refcount(const struct sshbuf *buf);
 # endif
 #endif /* SSHBUF_INTERNAL */
 
+/*
+ * Undo the libcrypto type stand-ins above so they do not leak into the rest
+ * of the translation unit; sshkey.h does the same. Without this, a TU that
+ * reaches sshbuf.h before config.h and then includes a real <openssl/*.h>
+ * hits "typedef struct evp_pkey_st void;".
+ */
+#ifndef WITH_OPENSSL
+#undef BIGNUM
+#undef EC_KEY
+#undef EC_GROUP
+#undef EC_POINT
+#undef EVP_PKEY
+#endif /* WITH_OPENSSL */
+
 #endif /* _SSHBUF_H */

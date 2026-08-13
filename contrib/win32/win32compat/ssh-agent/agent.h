@@ -1,4 +1,15 @@
+/* config.h comes first, and the order is load-bearing in both directions:
+ *  - it defines WIN32_LEAN_AND_MEAN, which must be in effect before Windows.h
+ *    so Windows.h does not pull winsock.h (winsock 1) and collide with the
+ *    WinSock2.h that config.h's own signal.h shim brings in;
+ *  - it must precede every OpenSSH header, because sshbuf.h defines EVP_PKEY,
+ *    EC_KEY, EC_GROUP, EC_POINT and BIGNUM to void when WITH_OPENSSL is unset
+ *    and, unlike sshkey.h, never undefines them again.
+ * WIN32_LEAN_AND_MEAN also drops wincrypt.h, so include that explicitly for
+ * DATA_BLOB / CryptProtectData below. */
+#include "config.h"
 #include <Windows.h>
+#include <wincrypt.h>
 #include <stdio.h>
 #include "Debug.h"
 #include "misc_internal.h"
