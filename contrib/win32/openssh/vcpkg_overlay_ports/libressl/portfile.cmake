@@ -7,7 +7,7 @@ vcpkg_download_distfile(
     URLS "https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${PORT}-${VERSION}.tar.gz"
          "https://github.com/libressl/portable/releases/download/v${VERSION}/${PORT}-${VERSION}.tar.gz"
     FILENAME "${PORT}-${VERSION}.tar.gz"
-    SHA512 b06eccff7b332da38efbc5a039d8ee54bd26437f3d5957f59ac2d93b4464f181c9a665a2c957272be5d9f91f447720f6dfa29b4b72407279ac8a7722c322dac0
+    SHA512 de80606d7f003afbbab766baf7f2a3cc3a515e88f14652535411052d293eacd06bac28667284c81ecac0382aad3a2c8cac49b687d9e3a09e45c19cd6aea41994
 )
 
 vcpkg_extract_source_archive(
@@ -15,7 +15,6 @@ vcpkg_extract_source_archive(
     ARCHIVE "${LIBRESSL_SOURCE_ARCHIVE}"
     PATCHES
         pkgconfig.diff
-        aarch64-windows.diff
         add-resource-header-file.patch
         add-version-file.patch
         modify-cmakelists.patch

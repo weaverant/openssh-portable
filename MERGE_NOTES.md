@@ -274,6 +274,33 @@ the whole run looks like a hang. Also give `sshd -t` an absolute Windows
 path — a POSIX-style relative `-f` path gets mangled and reports
 "No such file or directory".
 
+## Reshipping the same upstream release
+
+A rebuild of an already-published version — dependency bump, Windows-only fix —
+ships as `v<X>.<Y>p<N>-win32.<rev>`, titled "... (rev <rev>)". **The MSI version
+does not change**: it stays `<X>.<Y>.<N>`, because the next slot belongs to
+upstream's own `p<N+1>`. That only upgrades in place because `product.wxs` sets
+`AllowSameVersionUpgrades="yes"` — without it `MajorUpgrade` ignores a
+same-version MSI and the old install stays. A fourth field cannot substitute;
+MSI compares only the first three. Don't read `v10.3p1-win32.1` as precedent for
+the version number — that rev happened to bump 10.0.0.0 to 10.3.1.0 because it
+was fixing stale metadata.
+
+## Bumping the vcpkg dependencies
+
+`contrib/win32/openssh/vcpkg_overlay_ports/` holds our LibreSSL and libfido2
+ports; `vcpkg.json` pins the versions and a `builtin-baseline` freezes the
+registry, so upstream vcpkg moves never reach this build on their own. A
+LibreSSL bump touches five things: both `vcpkg.json` files, the `SHA512` and the
+`PATCHES` list in `portfile.cmake`, and the hardcoded `FILEVERSION 4,x,y,0`
+inside `add-version-file.patch`. That last one becomes the shipped
+`libcrypto.dll`'s PE version and nothing cross-checks it, so it lies silently.
+Dry-run every patch (`git apply --check`) against the new tarball first —
+upstream absorbs them over time, and one that now fails as "already exists" is
+done, not broken (4.3.2 retired `aarch64-windows.diff` this way). `README.md`
+carries the version list too. Delete `vcpkg_installed/` before rebuilding, or
+the old artifacts are silently reused and the build proves nothing.
+
 ## Version floor
 
 The Win32 base (`win32/latestw_all`) is at 10.0p2. Every upstream release

@@ -26,7 +26,7 @@ All 14 binaries and all unit tests build cleanly: `ssh`, `sshd`, `sshd-auth`, `s
 - **[vcpkg](https://github.com/microsoft/vcpkg)** -- clone anywhere, run `bootstrap-vcpkg.bat`, then `vcpkg integrate install`
 - **[.NET SDK](https://dotnet.microsoft.com/download) 6.0 or later** (only needed for the MSI installer)
 
-vcpkg handles all library dependencies automatically: LibreSSL 4.2.0, zlib 1.3.2, libfido2 1.16.0, libcbor 0.14.0.
+vcpkg handles all library dependencies automatically: LibreSSL 4.3.2, zlib 1.3.2, libfido2 1.16.0, libcbor 0.14.0.
 
 ### Build
 

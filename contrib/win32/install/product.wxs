@@ -19,7 +19,7 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
     <Package Name="OpenSSH" Version="$(var.ProductVersion)" Language="1033" Manufacturer="Microsoft Corporation" UpgradeCode="$(var.UpgradeCode)" InstallerVersion="200"><MediaTemplate EmbedCab="yes" />
 
-        <MajorUpgrade Schedule="afterInstallInitialize" DowngradeErrorMessage="A newer version of !(bind.property.ProductName) is already installed." />
+        <MajorUpgrade Schedule="afterInstallInitialize" AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of !(bind.property.ProductName) is already installed." />
         <Launch Condition="VersionNT &gt;= 601" Message="OpenSSH is supported only on Windows 7 and newer." />
 
         <!-- assume user wants path to be updated when client binaries are installed, can be overridden during install with ADD_PATH=0 -->
