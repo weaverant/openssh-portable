@@ -266,6 +266,12 @@ Some upstream files carry Windows-specific edits. Recurring ones:
    the wixproj defaults to `1.0.0`. Use `-t:Rebuild` — a changed property
    alone does not rebuild the MSI.
 7. **Tag** `v<X>.<Y>p<N>-win32` once verification passes.
+8. **Move the repo default branch** to the new `merge-<X>.<Y>p<N>`:
+   `gh repo edit weaverant/openssh-portable --default-branch merge-<X>.<Y>p<N>`.
+   Each release lives on its own branch, so a default left behind serves an
+   old README as the landing page however correct the new one is — found in
+   Aug 2026 with the default still on `merge-10.4p1`, whose README said
+   10.3p1. Editing README text never catches this; only the setting does.
 
 Scripting these from Git Bash: drive the binaries from **bash, not
 PowerShell**. PowerShell's native empty-argument passing swallows
