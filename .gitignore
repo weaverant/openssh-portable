@@ -57,3 +57,7 @@ build-output/
 # OpenSSHBuildHelper.psm1 and config.vcxproj's PreBuildEvent respectively.
 contrib/win32/openssh/paths.local.targets
 contrib/win32/win32compat/inc/crtheaders.h
+
+# Upstream's "ssh-agent" entry above means the built binary, but it also
+# matches this source directory and would hide new files in it.
+!contrib/win32/win32compat/ssh-agent/

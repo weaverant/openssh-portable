@@ -1,7 +1,7 @@
 # Upstream Merge Notes
 
 How to merge a new upstream OpenSSH release into this Win32 fork. Written from
-the 10.3p1, 10.4p1 and 10.5p1 merges; update this file as each new merge
+the 10.3p1, 10.4p1, 10.5p1 and 10.6p1 merges; update this file as each new merge
 teaches us something.
 
 ## Remotes
@@ -124,6 +124,8 @@ Expect the same areas next time.
   translation unit; since the Win32 build enables `USE_MLKEM768X25519`,
   omitting that `.c` fails the link with unresolved `crypto_kem_mlkem768_*`.
   10.5p1 added `kexmlkem768ecdh.c` (mlkem768nistp256-sha256).
+  10.6p1 added nothing the Win32 build needs and dropped `sshpty.o` from
+  `SSHDOBJS`, so `win32_sshpty.c` left `sshd.vcxproj`.
   Fastest way to catch these: extract `LIBSSH_OBJS` from `Makefile.in`, map
   `.o`→`.c`, and diff against the `ClCompile` entries in `libssh.vcxproj`.
   Three names always show up as missing and are absent **by design**, so don't
@@ -231,6 +233,22 @@ Some upstream files carry Windows-specific edits. Recurring ones:
   never conflicts when upstream edits the original. 10.3p1 swapped the
   `match_pattern` arguments and our copy kept the old order until the 2026-10
   base merge. Diff the two branches of that `#ifdef` after every merge.
+- **`readconf.c`: `ssh_valid_ruser` keeps `\` legal on Windows.** 10.6p1
+  refuses `$` and `\` in a username given on the command line. `DOMAIN\user`
+  is the native account syntax, so our `#ifdef WINDOWS` branch refuses `$` but
+  allows `\` except in last position (the rule upstream had until 10.5p1).
+  A deliberate deviation; mirror any character upstream adds to the list.
+- **`defines.h`: Windows is exempt from `SKIP_PRIVDROP`.** `config.h.vs`
+  defines `DISABLE_FD_PASSING`, which since 10.6p1 would make sshd force
+  `GatewayPorts no` and `AllowStreamLocalForwarding no` and refuse `-R` below
+  port 1024. Upstream means platforms whose session process keeps root; ours
+  spawns the post-auth child as the logged-in user (`privsep_postauth` under
+  `FORK_NOT_SUPPORTED`), so `!defined(WINDOWS)` sits next to the Cygwin
+  exemption. Keep it when upstream touches that condition. It also hides an
+  upstream defect: the `SKIP_PRIVDROP` block in `channels.c`
+  (`check_rfwd_permission`) names `allowed_open`, which is not in scope, so
+  10.6p1 does not compile wherever the macro is set. Not reported upstream
+  yet.
 - **`sshkey.c` — `sshkey_prekey_alloc` `#ifdef WINDOWS` gate.** Upstream
   nests the Windows branch inside `#if HAVE_MMAP`, which is never defined
   on Windows, so alloc falls through to `calloc()`. Meanwhile

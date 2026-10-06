@@ -1018,8 +1018,12 @@ struct winsize {
  * Cygwin doesn't need to drop privs here although it doesn't support
  * fd passing, as AFAIK PTY allocation on this platform doesn't require
  * special privileges to begin with.
+ *
+ * Nor does the native Windows port: its post-auth work runs in a child
+ * spawned as the logged-in user (FORK_NOT_SUPPORTED in sshd-session.c),
+ * so nothing privileged is retained.
  */
-#if defined(DISABLE_FD_PASSING) && !defined(HAVE_CYGWIN)
+#if defined(DISABLE_FD_PASSING) && !defined(HAVE_CYGWIN) && !defined(WINDOWS)
 # define SKIP_PRIVDROP 1
 #endif
 

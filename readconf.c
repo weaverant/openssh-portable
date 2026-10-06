@@ -3493,8 +3493,20 @@ ssh_valid_ruser(const char *s)
 	for (i = 0; s[i] != 0; i++) {
 		if (iscntrl((u_char)s[i]))
 			return 0;
+#ifdef WINDOWS
+		/*
+		 * Windows account names are written DOMAIN\user, so '\' stays
+		 * legal here, except in last position where it would escape a
+		 * closing quote.
+		 */
+		if (strchr("'`\";&<>|(){}$", s[i]) != NULL)
+			return 0;
+		if (s[i] == '\\' && s[i + 1] == '\0')
+			return 0;
+#else
 		if (strchr("'`\";&<>|(){}$\\", s[i]) != NULL)
 			return 0;
+#endif
 		/* Disallow '-' after whitespace */
 		if (isspace((u_char)s[i]) && s[i + 1] == '-')
 			return 0;

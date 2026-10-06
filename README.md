@@ -1,14 +1,14 @@
-# OpenSSH for Windows 10.5p1
+# OpenSSH for Windows 10.6p1
 
-A Windows build of [OpenSSH 10.5p1](https://www.openssh.com/txt/release-10.5) based on the [PowerShell/openssh-portable](https://github.com/PowerShell/openssh-portable) Win32 fork.
+A Windows build of [OpenSSH 10.6p1](https://www.openssh.com/txt/release-10.6) based on the [PowerShell/openssh-portable](https://github.com/PowerShell/openssh-portable) Win32 fork.
 
-The official Win32-OpenSSH release is currently at 10.0p2. This project merges upstream OpenSSH 10.5p1 into the Win32 fork to bring post-quantum cryptography support and other improvements to Windows ahead of the official release.
+The official Win32-OpenSSH release is currently at 10.0p2. This project merges upstream OpenSSH 10.6p1 into the Win32 fork to bring post-quantum cryptography support and other improvements to Windows ahead of the official release.
 
 ## What's included
 
-- **OpenSSH 10.5p1** features merged into the Win32 fork
+- **OpenSSH 10.6p1** features merged into the Win32 fork
 - **Post-quantum key exchange**: ML-KEM (mlkem768x25519-sha256) offered by default, plus mlkem768nistp256-sha256
-- **Post-quantum signatures**: `mldsa44-ed25519` host and user keys built in (upstream pulled it from the default algorithm list for the 10.5 release; it returns in a later one)
+- **Post-quantum signatures**: `ssh-mldsa44-ed25519` host and user keys, in the default algorithm list since 10.6 (keys made under the earlier experimental `@openssh.com` name must be regenerated)
 - **PQC negotiation warnings** when connecting to servers that don't support post-quantum key exchange
 - **DSA and XMSS support removed** (aligned with upstream)
 - **Key defaults aligned with upstream**: ed25519 default key type, 256-bit ECDSA
@@ -53,7 +53,7 @@ WiX v6 and its extensions are pulled in automatically via NuGet -- no separate W
 ```powershell
 dotnet build contrib\win32\install\openssh.wixproj -t:Rebuild `
   -p:Platform=x64 -p:Configuration=Release `
-  -p:ProductVersion=10.5.1
+  -p:ProductVersion=10.6.1
 ```
 
 Produces `contrib\win32\install\bin\x64\Release\openssh.msi`.
@@ -63,9 +63,9 @@ Produces `contrib\win32\install\bin\x64\Release\openssh.msi`.
 This is a merge of:
 
 - **Base**: [PowerShell/openssh-portable](https://github.com/PowerShell/openssh-portable) `latestw_all` branch (Win32 fork, at OpenSSH 10.3p1 since September 2026)
-- **Upstream**: [openssh/openssh-portable](https://github.com/openssh/openssh-portable) tag `V_10_5_P1`
+- **Upstream**: [openssh/openssh-portable](https://github.com/openssh/openssh-portable) tag `V_10_6_P1`
 
-Win32-specific changes (Windows service integration, process spawning via `posix_spawn`, Windows authentication, path handling) are preserved. Upstream changes to shared code (SOCKS parsing, certificate validation, PKCS#11 dispatch, key exchange) are taken from 10.5p1.
+Win32-specific changes (Windows service integration, process spawning via `posix_spawn`, Windows authentication, path handling) are preserved. Upstream changes to shared code (SOCKS parsing, certificate validation, PKCS#11 dispatch, key exchange) are taken from 10.6p1.
 
 ### Windows compat layer additions
 
@@ -74,6 +74,7 @@ The merge required new compat headers in `contrib/win32/win32compat/inc/` to sat
 ## Known issues
 
 - The PKCS#11 client (`ssh-pkcs11-client.c`) uses the new upstream keyblob-based dispatch. The Windows agent's PKCS#11 key management in `keyagent-request.c` provides backward-compatible local key tracking.
+- Since 10.6p1 `ssh` refuses a `$` in a username given on the command line. `DOMAIN\user` keeps working: this build exempts the backslash that upstream also refuses. For an account name containing `$`, set `User` in `ssh_config`.
 
 ## Disclaimer
 
