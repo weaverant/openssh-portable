@@ -201,7 +201,8 @@ conflicts.
   never undefines them — so a later `<openssl/*.h>` gets
   `typedef struct evp_pkey_st void;`). Because `WIN32_LEAN_AND_MEAN` also
   drops `wincrypt.h`, `DATA_BLOB`/`CryptProtectData` need an explicit
-  `#include <wincrypt.h>`. Autoconf builds never hit any of this: `includes.h`
+  `#include <wincrypt.h>`, and `agent-main.c` needs `<stdlib.h>` for
+  `_set_invalid_parameter_handler`. Autoconf builds never hit any of this: `includes.h`
   puts `config.h` first in every translation unit. We also added the missing
   `#undef` block to `sshbuf.h` as a belt-and-braces fix — worth pushing
   upstream, and worth re-checking whether upstream fixed it themselves.
