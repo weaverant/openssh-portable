@@ -105,8 +105,7 @@ static int
 start_helper(int *fdp, pid_t *pidp, void (**osigchldp)(int))
 {
 	void (*osigchld)(int);
-	int oerrno, pair[2], execpipe[2];
-	ssize_t n;
+	int oerrno, pair[2];
 	pid_t pid;
 	char *helper, *verbosity = NULL;
 #ifdef WINDOWS
@@ -114,6 +113,8 @@ start_helper(int *fdp, pid_t *pidp, void (**osigchldp)(int))
 	char *av[3];
 	posix_spawn_file_actions_t actions;
 #else
+	int execpipe[2];
+	ssize_t n;
 	char execbuf[100];
 #endif
 
@@ -132,23 +133,19 @@ start_helper(int *fdp, pid_t *pidp, void (**osigchldp)(int))
 	helper = getenv("SSH_SK_HELPER");
 	if (helper == NULL || strlen(helper) == 0)
 		helper = _PATH_SSH_SK_HELPER;
-	if (access(helper, X_OK) != 0) {
-		oerrno = errno;
-		error_f("helper \"%s\" unusable: %s", helper, strerror(errno));
-		errno = oerrno;
-		return SSH_ERR_SYSTEM_ERROR;
-	}
 #endif
 
 #ifdef DEBUG_SK
 	verbosity = "-vvv";
 #endif
 
+#ifndef WINDOWS
 	/* Create a O_CLOEXEC pipe to capture the execve() failure */
 	if (pipe(execpipe) == -1) {
 		error("pipe:  %s", strerror(errno));
 		return SSH_ERR_SYSTEM_ERROR;
 	}
+#endif
 	/* Start helper */
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, pair) == -1) {
 		error("socketpair: %s", strerror(errno));
@@ -234,9 +231,7 @@ start_helper(int *fdp, pid_t *pidp, void (**osigchldp)(int))
 		_exit(1);
 	}
 	close(pair[1]);
-#endif
 
-#ifndef WINDOWS
 	close(execpipe[1]);
 	n = read(execpipe[0], execbuf, sizeof execbuf);
 	close(execpipe[0]);

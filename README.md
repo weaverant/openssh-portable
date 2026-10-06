@@ -62,14 +62,14 @@ Produces `contrib\win32\install\bin\x64\Release\openssh.msi`.
 
 This is a merge of:
 
-- **Base**: [PowerShell/openssh-portable](https://github.com/PowerShell/openssh-portable) `latestw_all` branch (OpenSSH 10.0p2 Win32 fork)
+- **Base**: [PowerShell/openssh-portable](https://github.com/PowerShell/openssh-portable) `latestw_all` branch (Win32 fork, at OpenSSH 10.3p1 since September 2026)
 - **Upstream**: [openssh/openssh-portable](https://github.com/openssh/openssh-portable) tag `V_10_5_P1`
 
 Win32-specific changes (Windows service integration, process spawning via `posix_spawn`, Windows authentication, path handling) are preserved. Upstream changes to shared code (SOCKS parsing, certificate validation, PKCS#11 dispatch, key exchange) are taken from 10.5p1.
 
 ### Windows compat layer additions
 
-The merge required new compat headers in `contrib/win32/win32compat/inc/` to satisfy upstream includes that assume Unix system headers: `sys/queue.h`, `sys/tree.h`, `endian.h`, `glob.h`, `ifaddrs.h`, `netgroup.h`, `nlist.h`, `paths.h`, `util.h`. These are either redirectors to existing `openbsd-compat` implementations or empty stubs for functionality guarded by `#ifdef`.
+The merge required new compat headers in `contrib/win32/win32compat/inc/` to satisfy upstream includes that assume Unix system headers: `sys/queue.h`, `sys/tree.h`, `sys/mount.h`, `endian.h`, `ifaddrs.h`, `netgroup.h`, `nlist.h`, `paths.h`, `util.h`, plus `glob.h` one level up. These are either redirectors to existing `openbsd-compat` implementations or empty stubs for functionality guarded by `#ifdef`.
 
 ## Known issues
 

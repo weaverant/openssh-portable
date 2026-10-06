@@ -41,7 +41,9 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <netdb.h>
+#ifdef HAVE_PATHS_H
 #include <paths.h>
+#endif
 #include <pwd.h>
 #include <grp.h>
 #include <signal.h>
@@ -683,10 +685,13 @@ privsep_preauth(struct ssh *ssh)
 
 		close(pmonitor->m_recvfd);
 		close(pmonitor->m_log_sendfd);
+		/*
+		 * monitor_child_preauth() now waits for the unprivileged
+		 * sshd-auth child to exit (see monitor.c) and resets
+		 * pmonitor->m_pid, so no explicit waitpid() is needed here.
+		 */
 		monitor_child_preauth(ssh, pmonitor);
-		/* waitpid is already called inside monitor_child_preauth() */
 		privsep_is_preauth = 0;
-		pmonitor->m_pid = -1;
 		return 1;
 	}
 #else
@@ -1726,7 +1731,8 @@ main(int ac, char **av)
 
 #ifdef WINDOWS
 idexch_done:
-#endif
+#endif /* WINDOWS */
+
 	ssh_packet_set_nonblocking(ssh);
 
 	/* allocate authentication context */

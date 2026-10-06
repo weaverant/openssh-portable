@@ -49,7 +49,9 @@
 #include <string.h>
 #include <resolv.h>
 #include <time.h>
+#ifdef HAVE_UTIL_H
 #include <util.h>
+#endif /* HAVE_UTIL_H */
 
 #include "ssh2.h"
 #include "ssherr.h"
@@ -2475,9 +2477,8 @@ sshkey_cert_check_authority(const struct sshkey *k,
 
 		/* In windows, usernames are case insensitive */
 		if (wildcard_pattern) {
-			/* Use match_pattern_list for case insensitive compairision */
-			if (match_pattern_list(cert_principal_name_copy,
-			    name, 1)) {
+			/* Use match_pattern_list for case insensitive comparison */
+			if (match_pattern_list(name, cert_principal_name_copy, 1)) {
 				principal_matches = 1;
 				break;
 			}

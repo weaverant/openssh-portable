@@ -466,7 +466,6 @@
     <ClCompile Include="$(OpenSSH-Src-Path)servconf.c" />
     <ClCompile Include="$(OpenSSH-Src-Path)serverloop.c" />
     <ClCompile Include="$(OpenSSH-Src-Path)session.c" />
-    <ClCompile Include="$(OpenSSH-Src-Path)misc-agent.c" />
     <ClCompile Include="$(OpenSSH-Src-Path)sftp-common.c" />
     <ClCompile Include="$(OpenSSH-Src-Path)sshlogin.c" />
     <ClCompile Include="$(OpenSSH-Src-Path)contrib\win32\win32compat\win32_groupaccess.c" />
@@ -475,6 +474,7 @@
     <ClCompile Include="..\..\..\auth2-methods.c" />
     <ClCompile Include="..\..\..\auth2-pubkeyfile.c" />
     <ClCompile Include="..\..\..\misc.c" />
+    <ClCompile Include="..\..\..\misc-agent.c" />
     <ClCompile Include="..\..\..\platform-listen.c" />
     <ClCompile Include="..\..\..\srclimit.c" />
     <ClCompile Include="..\..\..\ssh-sk-client.c" />

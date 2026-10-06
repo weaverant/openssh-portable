@@ -42,7 +42,9 @@
 #include <limits.h>
 #include <stdarg.h>
 #include <errno.h>
+#ifdef HAVE_UTIL_H
 #include <util.h>
+#endif
 
 #include "xmalloc.h"
 #include "ssh.h"

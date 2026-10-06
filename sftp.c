@@ -28,7 +28,10 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <glob.h>
+
+#ifdef HAVE_PATHS_H
 #include <paths.h>
+#endif
 #include <libgen.h>
 #ifdef HAVE_LOCALE_H
 # include <locale.h>
@@ -48,7 +51,7 @@ typedef void EditLine;
 #include <fcntl.h>
 
 #ifdef HAVE_UTIL_H
-# include <util.h>
+#include <util.h>
 #endif
 
 #include "xmalloc.h"

@@ -28,10 +28,14 @@
 #include <ctype.h>
 #include <errno.h>
 #include <glob.h>
+#ifdef HAVE_IFADDRS_H
 #include <ifaddrs.h>
+#endif
 #include <limits.h>
 #include <netdb.h>
+#ifdef HAVE_PATHS_H
 #include <paths.h>
+#endif
 #include <pwd.h>
 #include <signal.h>
 #include <stdio.h>
@@ -39,11 +43,6 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <sshfileperm.h>
-#ifdef USE_SYSTEM_GLOB
-# include <glob.h>
-#else
-# include "openbsd-compat/glob.h"
-#endif
 #ifdef HAVE_UTIL_H
 #include <util.h>
 #endif

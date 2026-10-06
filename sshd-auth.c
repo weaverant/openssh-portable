@@ -41,7 +41,9 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <netdb.h>
+#ifdef HAVE_PATHS_H
 #include <paths.h>
+#endif
 #include <pwd.h>
 #include <grp.h>
 #include <signal.h>
@@ -96,6 +98,10 @@
 #include "srclimit.h"
 #include "ssh-sandbox.h"
 #include "dh.h"
+
+#ifdef WINDOWS
+#include "sshTelemetry.h"
+#endif
 
 /* Privsep fds */
 #define PRIVSEP_MONITOR_FD		(STDERR_FILENO + 1)
@@ -564,27 +570,6 @@ main(int ac, char **av)
 	if (!rexeced_flag)
 		fatal("sshd-auth should not be executed directly");
 
-#ifdef WITH_OPENSSL
-	OpenSSL_add_all_algorithms();
-#endif
-
-// Windows logging handled by sending debug messages to the parent sshd process
-// because an unprivileged sshd-auth process cannot open a log file owned by system
-#ifndef WINDOWS
-	/* If requested, redirect the logs to the specified logfile. */
-	if (logfile != NULL) {
-		char *cp, pid_s[32];
-
-		snprintf(pid_s, sizeof(pid_s), "%ld", (unsigned long)getpid());
-		cp = percent_expand(logfile,
-		    "p", pid_s,
-		    "P", "sshd-auth",
-		    (char *)NULL);
-		log_redirect_stderr_to(cp);
-		free(cp);
-	}
-#endif /* !WINDOWS */
-
 	log_init(__progname,
 	    options.log_level == SYSLOG_LEVEL_NOT_SET ?
 	    SYSLOG_LEVEL_INFO : options.log_level,
@@ -811,7 +796,15 @@ do_ssh2_kex(struct ssh *ssh)
 
 	if ((r = kex_exchange_identification(ssh, -1,
 	    options.version_addendum)) != 0)
+#ifdef WINDOWS
+	{
+		send_kex_exch_exit_code_telemetry(r);
+#endif /* WINDOWS */
 		sshpkt_fatal(ssh, r, "banner exchange");
+#ifdef WINDOWS
+	}
+	send_kex_exch_exit_code_telemetry(0);
+#endif /* WINDOWS */
 	mm_sshkey_setcompat(ssh); /* tell monitor */
 
 	if ((ssh->compat & SSH_BUG_NOREKEY))

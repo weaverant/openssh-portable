@@ -32,9 +32,10 @@ of a configured remote.
 - New releases from `openssh/openssh-portable` — tagged `V_<X>_<Y>_P<N>`
   (e.g. `V_10_3_P1`, `V_10_3_P2`). Both feature releases and portable-only
   security patches matter.
-- Occasional updates to `win32/latestw_all` (PowerShell/openssh-portable).
-  Infrequent; last moved 2026-08-03. Worth a look before each merge but not
-  a blocker if nothing changed.
+- Updates to `win32/latestw_all` (PowerShell/openssh-portable). Quiet for
+  months, then Microsoft merged 10.1p1, 10.2p1 and 10.3p1 within ten days
+  (last moved 2026-09-25). Check before each merge; when it has moved, see
+  "When the base has merged releases we already carry" below.
 
 Monitoring is currently a GitHub release watch on `openssh/openssh-portable`.
 No automation yet.
@@ -47,7 +48,12 @@ git fetch win32 latestw_all
 
 # Branch from the tip of the last release merge (current origin/HEAD),
 # NOT from latestw_all — we are accumulating our own Win32 fixes.
-git checkout -b merge-<X>.<Y>p<N> origin/HEAD
+# origin/HEAD is a local pointer that never follows the GitHub default by
+# itself: refresh it first, or this branches from wherever it pointed when the
+# clone was made. --no-track keeps the previous release branch from becoming
+# the new branch's upstream.
+git remote set-head origin -a
+git checkout --no-track -b merge-<X>.<Y>p<N> origin/HEAD
 
 # If win32/latestw_all has moved since our last base, merge it FIRST, as its
 # own commit. Doing it after the release tag means resolving the same
@@ -62,6 +68,36 @@ builds a virtual base and the generated release artifacts (`configure`,
 `config.h.in`, `ChangeLog`, the `*.0` man pages) arrive as `add/add` conflicts
 instead of clean merges. Take upstream for all of them — they are generated,
 we never hand-edit them.
+
+### When the base has merged releases we already carry
+
+From the 2026-10 base merge (Microsoft at 10.3p1, us at 10.5p1). Both sides had
+merged the same upstream tags, so this merge has two merge bases as well.
+
+- **Generated files conflict the other way round.** `configure`, `config.h.in`,
+  `ChangeLog` and the `*.0` pages: keep ours, we hold the newer release.
+- **Read the Windows deltas, not the conflict hunks.** With two merge bases the
+  markers nest and are close to unreadable. Compare
+  `git diff V_<their release> win32/latestw_all -- <file>` with
+  `git diff V_<our release> HEAD -- <file>`: what each side adds to upstream.
+  That found three defects in our own earlier resolutions, all fixed by taking
+  Microsoft's side: the Windows copy of the certificate principal match in
+  `sshkey.c` still had the argument order upstream reversed in 10.3p1, the
+  banner-exchange telemetry call was lost when `kex_exchange_identification`
+  moved to `sshd-auth.c`, and `ssh-sk-client.c` created a pipe on Windows that
+  only the non-Windows path closed.
+- **A clean auto-merge can still duplicate.** Both sides had added the same
+  thing in different spellings and git reported no conflict: `misc-agent.c`
+  twice in `sshd-auth.vcxproj` and `sshd-session.vcxproj`
+  (`$(OpenSSH-Src-Path)` against `..\..\..\`), two `test_*.c` entries in
+  `unittest-misc.vcxproj`, a second `benchmarks()` in the win32compat tests, a
+  second `PLEDGE_EXTRA_INET` in `config.h.vs`. Read the whole staged diff
+  against our branch, not only the conflicted files.
+- **Taking one side per hunk can unbalance `#ifdef` nesting** where both sides
+  restructured the same function (`ssh-sk-client.c`). Diff the result against
+  each whole side afterwards.
+- Dropped under the CI convention below: Microsoft's agent tooling in
+  `.github/`, `.vscode/mcp.json` and `contrib/win32/openssh/code_coverage/`.
 
 Then build, fix, test, tag:
 
@@ -90,11 +126,12 @@ Expect the same areas next time.
   10.5p1 added `kexmlkem768ecdh.c` (mlkem768nistp256-sha256).
   Fastest way to catch these: extract `LIBSSH_OBJS` from `Makefile.in`, map
   `.o`→`.c`, and diff against the `ClCompile` entries in `libssh.vcxproj`.
-  Four names always show up as missing and are absent **by design** — don't
+  Three names always show up as missing and are absent **by design**, so don't
   "fix" them: `ttymodes.c` (superseded by `win32compat/ttymodes_windows.c`),
-  `umac128.c` (aliased to `umac.c` via `#define`s in `config.h.vs`),
-  `ed25519-openssl.c` (gated on `OPENSSL_HAS_ED25519`, which we don't define),
-  and `sftp-realpath.c` (Windows has its own `realpath` in `win32compat`).
+  `umac128.c` (aliased to `umac.c` via `#define`s in `config.h.vs`) and
+  `sftp-realpath.c` (Windows has its own `realpath` in `win32compat`).
+  `ed25519-openssl.c` is listed since the 2026-10 base merge but compiles to
+  nothing: it is gated on `OPENSSL_HAS_ED25519`, which we don't define.
 - `config.h.vs` — Windows-only `config.h`. Keep our `S_ISSOCK` macro and
   `PLEDGE_EXTRA_INET` additions. Add any new upstream feature macros.
   10.4p1 added `USE_MLDSA` (matches upstream's default; registers the
@@ -135,6 +172,14 @@ add a matching shim.
 Existing shims touched by 10.3p1: `sys/queue.h`, `sys/tree.h`, `sys/stat.h`,
 `endian.h`, `glob.h`, `ifaddrs.h`, `netgroup.h`, `nlist.h`, `paths.h`,
 `util.h`, `crtheaders.h`.
+
+Since the 2026-10 base merge Microsoft ships its own `sys/queue.h`,
+`sys/tree.h`, `sys/mount.h` and `glob.h` (the last in `win32compat/`, not
+`inc/`); ours were replaced by theirs. Microsoft also wraps the includes of
+missing headers inside upstream files (`#ifdef HAVE_PATHS_H`, `HAVE_UTIL_H`,
+`HAVE_IFADDRS_H`, `HAVE_ENDIAN_H`, `HAVE_NETGROUP_H`, `HAVE_NLIST`, two dozen
+files). We took those, so an upstream edit next to one of these includes now
+conflicts.
 
 ### `contrib/win32/win32compat/` — source shims
 
@@ -177,9 +222,14 @@ Some upstream files carry Windows-specific edits. Recurring ones:
   is killed right after auth. Introduced as a follow-up fix to 10.3p1
   (0d1346ca1) — check this still holds after future upstream changes to
   the privsep path.
-- **`ssh_packet_set_interactive` call sites** — the signature changed in
-  10.3p1; Win32 compat code was updated to match. Recheck on signature
-  changes.
+- **`ssh_packet_set_interactive`**: no Win32 call sites remain. Upstream
+  dropped the calls from the exec paths in `session.c`, and `w32-doexec.c`
+  mirrors that file, so the 2026-10 base merge removed them there too.
+- **`sshkey.c`: the `#ifdef WINDOWS` copy of the certificate principal
+  match.** It duplicates upstream's loop to compare case-insensitively, so it
+  never conflicts when upstream edits the original. 10.3p1 swapped the
+  `match_pattern` arguments and our copy kept the old order until the 2026-10
+  base merge. Diff the two branches of that `#ifdef` after every merge.
 - **`sshkey.c` — `sshkey_prekey_alloc` `#ifdef WINDOWS` gate.** Upstream
   nests the Windows branch inside `#if HAVE_MMAP`, which is never defined
   on Windows, so alloc falls through to `calloc()`. Meanwhile
@@ -192,7 +242,9 @@ Some upstream files carry Windows-specific edits. Recurring ones:
   moves the Windows branch to the outer `#ifdef` so both allocate and
   free use `VirtualAlloc`/`VirtualFree` consistently. Watch this function
   on every merge — if upstream reorganises the preprocessor gates, our
-  fix needs to follow.
+  fix needs to follow. Microsoft's base now fixes the same leak with
+  `calloc`/`free`; we keep `VirtualAlloc`/`VirtualLock`, so this function
+  conflicts on every base merge.
 - **`servconf.c` — `#ifdef WINDOWS` around `sshd_session_path` /
   `sshd_auth_path`.** Windows uses `derelativise_path()` where upstream
   uses `xstrdup()`; keep the guard. 10.4p1 also dropped the
@@ -309,10 +361,10 @@ the old artifacts are silently reused and the build proves nothing.
 
 ## Version floor
 
-The Win32 base (`win32/latestw_all`) is at 10.0p2. Every upstream release
-after that merges through us, not through PowerShell — expect the Win32
-compat layer to need more adjustment the further upstream moves ahead
-of `latestw_all`.
+The Win32 base (`win32/latestw_all`) is at 10.3p1, merged here 2026-10-06.
+Every upstream release after that merges through us, not through PowerShell:
+expect the Win32 compat layer to need more adjustment the further upstream
+moves ahead of `latestw_all`.
 
 ## Windows runtime quirks
 
