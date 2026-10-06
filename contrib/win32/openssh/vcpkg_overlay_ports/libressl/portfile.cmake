@@ -7,7 +7,7 @@ vcpkg_download_distfile(
     URLS "https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${PORT}-${VERSION}.tar.gz"
          "https://github.com/libressl/portable/releases/download/v${VERSION}/${PORT}-${VERSION}.tar.gz"
     FILENAME "${PORT}-${VERSION}.tar.gz"
-    SHA512 de80606d7f003afbbab766baf7f2a3cc3a515e88f14652535411052d293eacd06bac28667284c81ecac0382aad3a2c8cac49b687d9e3a09e45c19cd6aea41994
+    SHA512 e18aa7016048aaec5988cedc3daea2f3f9c114760c0b7e15b18388ed3ab0a1a0386860a318a8cdbe961bb4369db28a9fe01a9bf04f97b7fbafd45815693fd634
 )
 
 vcpkg_extract_source_archive(
@@ -16,10 +16,13 @@ vcpkg_extract_source_archive(
     PATCHES
         pkgconfig.diff
         add-resource-header-file.patch
-        add-version-file.patch
         modify-cmakelists.patch
         modify-crypto-cmakelists.patch
 )
+
+# libcrypto.dll's PE version, generated so it cannot drift from the tarball
+string(REPLACE "." "," LIBRESSL_RC_VERSION "${VERSION}")
+configure_file("${CURRENT_PORT_DIR}/version.rc.in" "${SOURCE_PATH}/crypto/version.rc" @ONLY)
 
 vcpkg_check_features(OUT_FEATURE_OPTIONS FEATURE_OPTIONS
     FEATURES

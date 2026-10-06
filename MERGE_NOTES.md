@@ -368,15 +368,21 @@ was fixing stale metadata.
 `contrib/win32/openssh/vcpkg_overlay_ports/` holds our LibreSSL and libfido2
 ports; `vcpkg.json` pins the versions and a `builtin-baseline` freezes the
 registry, so upstream vcpkg moves never reach this build on their own. A
-LibreSSL bump touches five things: both `vcpkg.json` files, the `SHA512` and the
-`PATCHES` list in `portfile.cmake`, and the hardcoded `FILEVERSION 4,x,y,0`
-inside `add-version-file.patch`. That last one becomes the shipped
-`libcrypto.dll`'s PE version and nothing cross-checks it, so it lies silently.
-Dry-run every patch (`git apply --check`) against the new tarball first —
-upstream absorbs them over time, and one that now fails as "already exists" is
-done, not broken (4.3.2 retired `aarch64-windows.diff` this way). `README.md`
-carries the version list too. Delete `vcpkg_installed/` before rebuilding, or
-the old artifacts are silently reused and the build proves nothing.
+LibreSSL bump touches four things: both `vcpkg.json` files, and the `SHA512`
+and the `PATCHES` list in `portfile.cmake`. `libcrypto.dll`'s PE version needs
+no edit: the portfile generates `crypto/version.rc` from `version.rc.in` and the
+port version. Dry-run the patches against the new tarball first, the way vcpkg
+applies them: in portfile order with
+`git apply --ignore-whitespace --whitespace=nowarn`. A plain
+`git apply --check` reports failures that are not real, because the patch files
+check out with CRLF and the tarball is LF. Upstream absorbs patches over time,
+and one that now fails as "already exists" is done, not broken (4.3.2 retired
+`aarch64-windows.diff` this way); one that fails on context needs the context
+refreshed (4.3.3, `modify-cmakelists.patch`). `README.md` carries the version
+list too. Delete `vcpkg_installed/` before rebuilding, or the old artifacts are
+silently reused and the build proves nothing. Afterwards
+`(Get-Item bin\x64\Release\libcrypto.dll).VersionInfo` must show the new
+version.
 
 ## Version floor
 

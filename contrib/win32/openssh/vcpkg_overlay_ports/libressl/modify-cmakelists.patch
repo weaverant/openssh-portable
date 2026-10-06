@@ -2,8 +2,9 @@ diff --git a/CMakeLists.txt b/CMakeLists.txt
 index a9a3dca..357c755 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -57,10 +57,8 @@ option(ENABLE_NC "Enable installing TLS-enabled nc(1)" OFF)
+@@ -59,11 +59,9 @@ option(ENABLE_NC "Enable installing TLS-enabled nc(1)" OFF)
  set(OPENSSLDIR ${OPENSSLDIR} CACHE PATH "Set the default openssl directory" FORCE)
+ set(TLS_DEFAULT_CA_FILE ${TLS_DEFAULT_CA_FILE} CACHE PATH "Set the default CA file" FORCE)
  set(LIBRESSL_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/LibreSSL" CACHE STRING "Installation directory for the CMake targets")
  
 -option(USE_STATIC_MSVC_RUNTIMES "Use /MT instead of /MD in MSVC" OFF)
