@@ -411,3 +411,30 @@ SCM restarts the service a few seconds later. Not a crash.
 
 Don't patch the upstream `logit` call to "fix" this — it costs merge
 friction for a cosmetic change. Document here instead.
+
+### No Unix-domain server sockets
+
+`w32_bind`, `w32_listen` and `w32_accept` in
+`contrib/win32/win32compat/w32fd.c` return `ENOTSUP` for `AF_UNIX`. Agent
+forwarding *into* our sshd therefore cannot work (the client sees "Agent
+forwarding disabled: couldn't create listener socket"), nor can
+`ControlMaster`. Found on the 10.6p1 install test, but as old as the port.
+Testing `ssh -A localhost ssh-add -l` on one machine proves nothing: with no
+forwarded socket, `ssh-add` reaches the local agent service directly. Look at
+`echo %SSH_AUTH_SOCK%` in the session instead.
+
+### `mkdir_path()` takes a drive letter for a relative name
+
+New in 10.6p1 (`misc.c`). Its fallback for platforms without `openat`, the one
+Windows compiles, treats every path not starting with `/` as relative, so
+`D:/x/y` becomes `<cwd>/D:/x/y` and fails with "Invalid argument". Reachable
+through `lmkdir -p` in `sftp`; relative paths and the remote `mkdir -p` work.
+Not fixed: it would mean patching an upstream helper for one niche command.
+
+### What the session process runs as
+
+`tasklist /v /fi "imagename eq sshd-session.exe"`, run elevated or inside an
+SSH session, lists two processes per login: the monitor as
+`NT AUTHORITY\SYSTEM` and its child as the logged-in user (checked on 10.6.1,
+2026-10-06). The `SKIP_PRIVDROP` exemption in `defines.h` rests on this; if a
+future merge changes it, the exemption has to go.

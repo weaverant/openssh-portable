@@ -74,6 +74,8 @@ The merge required new compat headers in `contrib/win32/win32compat/inc/` to sat
 ## Known issues
 
 - The PKCS#11 client (`ssh-pkcs11-client.c`) uses the new upstream keyblob-based dispatch. The Windows agent's PKCS#11 key management in `keyagent-request.c` provides backward-compatible local key tracking.
+- Agent forwarding into this `sshd` (`ssh -A` to a Windows server) does not work, and neither does `ControlMaster`: the Windows compatibility layer has no Unix-domain server sockets. `ssh -A` from Windows to other servers is unaffected.
+- `sftp`: `lmkdir -p` fails for an absolute Windows path such as `D:/dir/sub`. Relative paths and the remote `mkdir -p` work.
 - Since 10.6p1 `ssh` refuses a `$` in a username given on the command line. `DOMAIN\user` keeps working: this build exempts the backslash that upstream also refuses. For an account name containing `$`, set `User` in `ssh_config`.
 
 ## Disclaimer
