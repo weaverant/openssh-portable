@@ -8,7 +8,7 @@ The official Win32-OpenSSH release is currently at 10.0p2. This project merges u
 
 - **OpenSSH 10.6p1** features merged into the Win32 fork
 - **Post-quantum key exchange**: ML-KEM (mlkem768x25519-sha256) offered by default, plus mlkem768nistp256-sha256
-- **Post-quantum signatures**: `ssh-mldsa44-ed25519` host and user keys, in the default algorithm list since 10.6 (keys made under the earlier experimental `@openssh.com` name must be regenerated)
+- **Post-quantum signatures**: `ssh-mldsa44-ed25519` host and user keys, in the default algorithm list since 10.6 (keys made under the earlier experimental `@openssh.com` name must be regenerated, see [Upgrading from 10.4](#upgrading-from-104))
 - **PQC negotiation warnings** when connecting to servers that don't support post-quantum key exchange
 - **DSA and XMSS support removed** (aligned with upstream)
 - **Key defaults aligned with upstream**: ed25519 default key type, 256-bit ECDSA
@@ -57,6 +57,25 @@ dotnet build contrib\win32\install\openssh.wixproj -t:Rebuild `
 ```
 
 Produces `contrib\win32\install\bin\x64\Release\openssh.msi`.
+
+## Upgrading from 10.4
+
+10.6 renamed the post-quantum key type from `ssh-mldsa44-ed25519@openssh.com` to `ssh-mldsa44-ed25519`, and keys made under the old name no longer load. `sshd` reports a host key it cannot load from the default path only at debug level, so after the upgrade the server silently stops offering it. Replace it from an elevated PowerShell 7:
+
+```powershell
+cd C:\ProgramData\ssh
+Remove-Item ssh_host_mldsa44_ed25519_key, ssh_host_mldsa44_ed25519_key.pub
+& "C:\Program Files\OpenSSH\ssh-keygen.exe" -t mldsa44-ed25519 -f ssh_host_mldsa44_ed25519_key -N ''
+icacls ssh_host_mldsa44_ed25519_key /setowner SYSTEM
+icacls ssh_host_mldsa44_ed25519_key /remove "$env:USERDOMAIN\$env:USERNAME"
+Restart-Service sshd
+```
+
+- `-N ''` is the empty passphrase in PowerShell 7.3 and later. `-N '""'` sets a literal `""` passphrase there, and `sshd` cannot use an encrypted host key.
+- `sshd` runs as SYSTEM and refuses a host key owned by another account. An elevated `ssh-keygen` can leave the key owned by your account, hence the two `icacls` lines.
+- To check: elevated `sshd.exe -t -d` lists each host key it loads and why one fails; `ssh-keyscan -t ssh-mldsa44-ed25519 localhost` shows the key is served.
+
+User keys made under 10.4 (`id_mldsa44_ed25519`) must be regenerated too, and their `authorized_keys` entries replaced.
 
 ## Origin
 
