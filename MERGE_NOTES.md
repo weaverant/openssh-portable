@@ -40,6 +40,12 @@ of a configured remote.
 Monitoring is currently a GitHub release watch on `openssh/openssh-portable`.
 No automation yet.
 
+Next: 10.6p2. As of 2026-11-05 (`git fetch openssh --tags`) the `V_10_6`
+branch carries it but `V_10_6_P2` is not tagged; merge once it is. Its
+password authentication bypass (musl without PAM, `90f9c2f73`) does not
+reach Windows: under `WINDOWS`, `auth_password()` returns through
+`windows_password_auth()` (`LogonUserExExW`) before `sys_auth_passwd()`.
+
 ## Merge procedure
 
 ```sh
@@ -247,8 +253,8 @@ Some upstream files carry Windows-specific edits. Recurring ones:
   exemption. Keep it when upstream touches that condition. It also hides an
   upstream defect: the `SKIP_PRIVDROP` block in `channels.c`
   (`check_rfwd_permission`) names `allowed_open`, which is not in scope, so
-  10.6p1 does not compile wherever the macro is set. Not reported upstream
-  yet.
+  10.6p1 does not compile wherever the macro is set. Fixed upstream for
+  10.6p2 (`795dd15c5`, "unbreak SKIP_PRIVDROP case").
 - **`sshkey.c` — `sshkey_prekey_alloc` `#ifdef WINDOWS` gate.** Upstream
   nests the Windows branch inside `#if HAVE_MMAP`, which is never defined
   on Windows, so alloc falls through to `calloc()`. Meanwhile
