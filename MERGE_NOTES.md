@@ -1,7 +1,7 @@
 # Upstream Merge Notes
 
 How to merge a new upstream OpenSSH release into this Win32 fork. Written from
-the 10.3p1, 10.4p1, 10.5p1 and 10.6p1 merges; update this file as each new merge
+the 10.3p1, 10.4p1, 10.5p1, 10.6p1 and 10.6p2 merges; update this file as each new merge
 teaches us something.
 
 ## Remotes
@@ -34,16 +34,14 @@ of a configured remote.
   security patches matter.
 - Updates to `win32/latestw_all` (PowerShell/openssh-portable). Quiet for
   months, then Microsoft merged 10.1p1, 10.2p1 and 10.3p1 within ten days
-  (last moved 2026-09-25). Check before each merge; when it has moved, see
+  (last moved 2026-10-30, to 10.5p1). Check before each merge; when it has moved, see
   "When the base has merged releases we already carry" below.
 
 Monitoring is currently a GitHub release watch on `openssh/openssh-portable`.
 No automation yet.
 
-Next: 10.6p2. As of 2026-11-05 (`git fetch openssh --tags`) the `V_10_6`
-branch carries it but `V_10_6_P2` is not tagged; merge once it is. Its
-password authentication bypass (musl without PAM, `90f9c2f73`) does not
-reach Windows: under `WINDOWS`, `auth_password()` returns through
+10.6p2's password authentication bypass (musl without PAM, `90f9c2f73`) does
+not reach Windows: under `WINDOWS`, `auth_password()` returns through
 `windows_password_auth()` (`LogonUserExExW`) before `sys_auth_passwd()`.
 
 ## Merge procedure
@@ -102,6 +100,13 @@ merged the same upstream tags, so this merge has two merge bases as well.
 - **Taking one side per hunk can unbalance `#ifdef` nesting** where both sides
   restructured the same function (`ssh-sk-client.c`). Diff the result against
   each whole side afterwards.
+- **Never `git checkout --ours/--theirs` a file with a content conflict.** It
+  takes the whole file and silently drops the other side's clean hunks
+  (10.6p2 cycle: 47 lines of upstream in `test_helper.c`). Use
+  `git checkout -m <file>` to restore the markers, then resolve per hunk.
+  Whole-file is fine only for modify/delete and generated files.
+- **Microsoft moved to VS2026 (toolset v145) in #891.** The build helper now
+  only looks for VS 18.x on x64; VS2022 stays needed for older branches.
 - Dropped under the CI convention below: Microsoft's agent tooling in
   `.github/`, `.vscode/mcp.json` and `contrib/win32/openssh/code_coverage/`.
 

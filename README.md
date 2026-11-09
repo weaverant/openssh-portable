@@ -1,12 +1,12 @@
-# OpenSSH for Windows 10.6p1
+# OpenSSH for Windows 10.6p2
 
-A Windows build of [OpenSSH 10.6p1](https://www.openssh.com/txt/release-10.6) based on the [PowerShell/openssh-portable](https://github.com/PowerShell/openssh-portable) Win32 fork.
+A Windows build of [OpenSSH 10.6p2](https://www.openssh.com/txt/release-10.6p2) based on the [PowerShell/openssh-portable](https://github.com/PowerShell/openssh-portable) Win32 fork.
 
-The official Win32-OpenSSH release is currently at 10.0p2. This project merges upstream OpenSSH 10.6p1 into the Win32 fork to bring post-quantum cryptography support and other improvements to Windows ahead of the official release.
+The official Win32-OpenSSH release is currently at 10.4p1 (Preview). This project merges upstream OpenSSH 10.6p2 into the Win32 fork to bring post-quantum cryptography support and other improvements to Windows ahead of the official release.
 
 ## What's included
 
-- **OpenSSH 10.6p1** features merged into the Win32 fork
+- **OpenSSH 10.6p2** features merged into the Win32 fork
 - **Post-quantum key exchange**: ML-KEM (mlkem768x25519-sha256) offered by default, plus mlkem768nistp256-sha256
 - **Post-quantum signatures**: `ssh-mldsa44-ed25519` host and user keys, in the default algorithm list since 10.6 (keys made under the earlier experimental `@openssh.com` name must be regenerated, see [Upgrading from 10.4](#upgrading-from-104))
 - **PQC negotiation warnings** when connecting to servers that don't support post-quantum key exchange
@@ -20,13 +20,13 @@ All 14 binaries and all unit tests build cleanly: `ssh`, `sshd`, `sshd-auth`, `s
 
 ### Prerequisites
 
-- **Visual Studio 2022** with the C++ desktop development workload
-- **MSVC v143 Spectre-mitigated libs** (install via VS Installer, Individual Components)
+- **Visual Studio 2026** with the C++ desktop development workload
+- **C++ Spectre-mitigated libraries for x64/x86 (Latest MSVC, toolset v145)** (install via VS Installer, Individual Components)
 - **Windows SDK 10.0.22621.0** or later
 - **[vcpkg](https://github.com/microsoft/vcpkg)** -- clone anywhere, run `bootstrap-vcpkg.bat`, then `vcpkg integrate install`
 - **[.NET SDK](https://dotnet.microsoft.com/download) 6.0 or later** (only needed for the MSI installer)
 
-vcpkg handles all library dependencies automatically: LibreSSL 4.3.3, zlib 1.3.2, libfido2 1.16.0, libcbor 0.14.0.
+vcpkg handles all library dependencies automatically: LibreSSL 4.3.3, zlib 1.3.2, libfido2 1.17.0, libcbor 0.14.0.
 
 ### Build
 
@@ -53,7 +53,7 @@ WiX v6 and its extensions are pulled in automatically via NuGet -- no separate W
 ```powershell
 dotnet build contrib\win32\install\openssh.wixproj -t:Rebuild `
   -p:Platform=x64 -p:Configuration=Release `
-  -p:ProductVersion=10.6.1
+  -p:ProductVersion=10.6.2
 ```
 
 Produces `contrib\win32\install\bin\x64\Release\openssh.msi`.
@@ -81,10 +81,10 @@ User keys made under 10.4 (`id_mldsa44_ed25519`) must be regenerated too, and th
 
 This is a merge of:
 
-- **Base**: [PowerShell/openssh-portable](https://github.com/PowerShell/openssh-portable) `latestw_all` branch (Win32 fork, at OpenSSH 10.3p1 since September 2026)
-- **Upstream**: [openssh/openssh-portable](https://github.com/openssh/openssh-portable) tag `V_10_6_P1`
+- **Base**: [PowerShell/openssh-portable](https://github.com/PowerShell/openssh-portable) `latestw_all` branch (Win32 fork, at OpenSSH 10.5p1 since October 2026)
+- **Upstream**: [openssh/openssh-portable](https://github.com/openssh/openssh-portable) tag `V_10_6_P2`
 
-Win32-specific changes (Windows service integration, process spawning via `posix_spawn`, Windows authentication, path handling) are preserved. Upstream changes to shared code (SOCKS parsing, certificate validation, PKCS#11 dispatch, key exchange) are taken from 10.6p1.
+Win32-specific changes (Windows service integration, process spawning via `posix_spawn`, Windows authentication, path handling) are preserved. Upstream changes to shared code (SOCKS parsing, certificate validation, PKCS#11 dispatch, key exchange) are taken from 10.6p2.
 
 ### Windows compat layer additions
 
