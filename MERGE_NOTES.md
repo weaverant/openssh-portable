@@ -322,10 +322,12 @@ Some upstream files carry Windows-specific edits. Recurring ones:
    `.vcxproj`; add stubs for `benchmarks()` etc. to win32compat tests.
    Running them: `unittest-sshkey` / `unittest-hostkeys` need `-d testdata`;
    `unittest-win32compat`'s symlink tests (from ~test #39) need elevation or
-   Developer Mode — unelevated they fail on `symlink() = -1`, which is
-   environmental, not a regression. 10.4p1 added `regress/unittests/crypto`
-   and `regress/unittests/servconf` upstream; neither is wired into the
-   Win32 solution.
+   Developer Mode; unelevated they fail on `symlink() = -1`, which is
+   environmental, not a regression. The suite stops at the first failed
+   assert, so an unelevated run says nothing about the tests after the
+   symlink ones: run it elevated once. Microsoft's 10.5p1 base wired in
+   `unittest-crypto`; upstream's `regress/unittests/servconf` (10.4p1) is
+   still not in the Win32 solution.
 3. **Checks that need neither elevation nor credentials** — worth running
    first, because they catch most of what a merge breaks:
    `ssh -V` and the PE metadata (`(Get-Item ssh.exe).VersionInfo`) must both
@@ -334,14 +336,21 @@ Some upstream files carry Windows-specific edits. Recurring ones:
    `-Y sign`/`-Y verify` round-trip per key type, including a deliberately
    tampered payload that must be rejected; `ssh-keyscan -p 22 127.0.0.1`
    against any live sshd for a full KEX handshake; and `sshd -t -f <config>`.
-   Note `ssh-keygen -Y verify` reads the signed data from **stdin** — without
-   a redirect it hangs, looking like a broken binary.
+   Note `ssh-keygen -Y verify` reads the signed data from **stdin**; without
+   a redirect it hangs, looking like a broken binary. A rejected verify exits
+   127 (10.6p1 too), not 255. `-Y sign` stops at an overwrite prompt if the
+   `.sig` already exists. For `sshd -t`, generate test host keys in place with
+   `ssh-keygen`: a `cp` copy inherits the folder's Authenticated Users entry
+   and sshd refuses the key as too open.
 4. **Smoke test interactive login** — password auth especially, since
    `FORK_NOT_SUPPORTED` regressions show up here. Install the MSI and test
    the real service: a hand-started sshd fails password auth at
    `CreateProcessAsUserW ... 1314` no matter how elevated, because
    `get_user_token()` only takes the privileged LSA path as SYSTEM.
-5. **Smoke test `scp` and `sftp`** — file transfer path.
+5. **Smoke test `scp` and `sftp`**: `scp` in both protocols (default SFTP
+   and legacy `-O`) and an `sftp` get, with matching hashes. Then a remote
+   forward against the service: `ssh -R 2299:localhost:22 localhost`, and
+   inside the session `ssh-keyscan -p 2299 127.0.0.1` must list the host keys.
 6. **Build the MSI** — `contrib/win32/install/`. WiX v6 (migrated in
    5b8de34db); no manual WiX download needed. Pass the version explicitly
    (`-p:ProductVersion=<X>.<Y>.<N>`, matching `version.rc`'s `p<N>` field);
@@ -397,7 +406,7 @@ version.
 
 ## Version floor
 
-The Win32 base (`win32/latestw_all`) is at 10.3p1, merged here 2026-10-06.
+The Win32 base (`win32/latestw_all`) is at 10.5p1, merged here 2026-11-09.
 Every upstream release after that merges through us, not through PowerShell:
 expect the Win32 compat layer to need more adjustment the further upstream
 moves ahead of `latestw_all`.
@@ -449,3 +458,20 @@ SSH session, lists two processes per login: the monitor as
 `NT AUTHORITY\SYSTEM` and its child as the logged-in user (checked on 10.6.1,
 2026-10-06). The `SKIP_PRIVDROP` exemption in `defines.h` rests on this; if a
 future merge changes it, the exemption has to go.
+
+### Domain accounts need a reachable domain controller
+
+On an Entra-joined host that is not domain-joined (`dsregcmd /status`:
+`AzureAdJoined: YES`, `DomainJoined: NO`), a hybrid `DOMAIN\user` account
+never gets a session from the service: the key is accepted, then
+`lookup_principal_name ... 1355` (no such domain) and `fatal: fork of
+unprivileged child failed`. Password auth fails the same way. One such
+host's `OpenSSH/Admin` event log shows this from 2026-04-23 through
+2026-11-09, on every build, so it is not a regression. Run checklist steps 4
+and 5 on a host with a local account or a reachable DC. Errors land in
+`OpenSSH/Admin`, readable unelevated: `Get-WinEvent -LogName OpenSSH/Admin`.
+
+The closest Microsoft issue is PowerShell/Win32-OpenSSH#1787 (Entra
+accounts), open since 2021 and in their backlog (checked 2026-11-09):
+Windows cannot create the S4U token sshd needs. Servers are domain-joined or standalone, so
+it only bites when testing on an Entra-joined client.
