@@ -60,6 +60,10 @@
 
 #define MINIMUM(a, b)    (((a) < (b)) ? (a) : (b))
 
+#ifndef CLOCK_REALTIME
+# define CLOCK_REALTIME 0
+#endif
+
 #define TEST_CHECK_INT(r, pred) do {		\
 		switch (pred) {			\
 		case TEST_EQ:			\

@@ -34,7 +34,7 @@
 #define EC_GROUP	void
 #define EC_POINT	void
 #define EVP_PKEY	void
-#endif /* WITH_OPENSSL */
+#endif /* !WITH_OPENSSL */
 
 #define SSHBUF_SIZE_MAX		0x8000000	/* Hard maximum size */
 #define SSHBUF_REFS_MAX		0x100000	/* Max child buffers */
@@ -447,6 +447,6 @@ u_int	sshbuf_refcount(const struct sshbuf *buf);
 #undef EC_GROUP
 #undef EC_POINT
 #undef EVP_PKEY
-#endif /* WITH_OPENSSL */
+#endif /* !WITH_OPENSSL */
 
 #endif /* _SSHBUF_H */

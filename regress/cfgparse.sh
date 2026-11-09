@@ -52,10 +52,18 @@ port 5678
 listenaddress 1.2.3.4
 $LISTENADDRESS_IPV6_LOOPBACK
 EOD
-($SUDO ${SSHD} -T -f $OBJ/sshd_config.1 | \
- grep -i '^listenaddress ' >$OBJ/sshd_config.2 &&
- diff -i $OBJ/sshd_config.0 $OBJ/sshd_config.2) || \
- fail "listenaddress order 1"
+if [ "$os" == "windows" ]; then
+	# Ignore the CR (carriage return) and case during diff
+	($SUDO ${SSHD} -T -f $OBJ/sshd_config.1 | \
+	 grep -i '^listenaddress ' >$OBJ/sshd_config.2 &&
+	 diff --strip-trailing-cr -i $OBJ/sshd_config.0 $OBJ/sshd_config.2) || \
+	 fail "listenaddress order 1"
+else
+	($SUDO ${SSHD} -T -f $OBJ/sshd_config.1 | \
+	 grep -i '^listenaddress ' >$OBJ/sshd_config.2 &&
+	 diff -i $OBJ/sshd_config.0 $OBJ/sshd_config.2) || \
+	 fail "listenaddress order 1"
+fi
 
 # test 2: listenaddress first
 cat > $OBJ/sshd_config.1 <<EOD
@@ -66,10 +74,18 @@ port 1234
 port 5678
 addressfamily any
 EOD
-($SUDO ${SSHD} -T -f $OBJ/sshd_config.1 | \
- grep -i '^ListenAddress ' >$OBJ/sshd_config.2 &&
- diff -i $OBJ/sshd_config.0 $OBJ/sshd_config.2) || \
- fail "listenaddress order 2"
+if [ "$os" == "windows" ]; then
+	# Ignore the CR (carriage return) and case during diff
+	($SUDO ${SSHD} -T -f $OBJ/sshd_config.1 | \
+	 grep -i '^ListenAddress ' >$OBJ/sshd_config.2 &&
+	 diff --strip-trailing-cr -i $OBJ/sshd_config.0 $OBJ/sshd_config.2) || \
+	 fail "listenaddress order 2"
+else
+	($SUDO ${SSHD} -T -f $OBJ/sshd_config.1 | \
+	 grep -i '^ListenAddress ' >$OBJ/sshd_config.2 &&
+	 diff -i $OBJ/sshd_config.0 $OBJ/sshd_config.2) || \
+	 fail "listenaddress order 2"
+fi
 
 # Check idempotence of MaxStartups
 verbose "maxstartups idempotent"
@@ -79,10 +95,18 @@ ${SSHD_KEYS}
 MaxStartups 1:2:3
 MaxStartups 8:16:32
 EOD
-($SUDO ${SSHD} -T -f $OBJ/sshd_config.1 | \
- grep -i '^maxstartups ' >$OBJ/sshd_config.2 &&
- diff -i $OBJ/sshd_config.0 $OBJ/sshd_config.2) || \
- fail "maxstartups idempotence"
+if [ "$os" == "windows" ]; then
+	# Ignore the CR (carriage return) and case during diff
+	($SUDO ${SSHD} -T -f $OBJ/sshd_config.1 | \
+	 grep -i '^maxstartups ' >$OBJ/sshd_config.2 &&
+	 diff --strip-trailing-cr -i $OBJ/sshd_config.0 $OBJ/sshd_config.2) || \
+	 fail "maxstartups idempotence"
+else
+	($SUDO ${SSHD} -T -f $OBJ/sshd_config.1 | \
+	 grep -i '^maxstartups ' >$OBJ/sshd_config.2 &&
+	 diff -i $OBJ/sshd_config.0 $OBJ/sshd_config.2) || \
+	 fail "maxstartups idempotence"
+fi
 
 # cleanup
 rm -f $OBJ/sshd_config.[012]

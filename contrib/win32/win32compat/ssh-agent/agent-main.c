@@ -34,6 +34,7 @@
 #include "..\misc_internal.h"
 #include "..\Debug.h"
 #include <stdlib.h>
+#include "version.h"
 #include <wchar.h>
 
 #pragma warning(push, 3)
@@ -124,6 +125,10 @@ extern void sanitise_stdfd(void);
 int 
 wmain(int argc, wchar_t **wargv)
 {
+	if (argc == 2 && wcscmp(wargv[1], L"-V") == 0) {
+		fprintf(stderr, "%s\n", SSH_VERSION);
+		return 0;
+	}
 	_set_invalid_parameter_handler(invalid_parameter_handler);
 	w32posix_initialize();
 	fix_cwd();
@@ -156,6 +161,10 @@ wmain(int argc, wchar_t **wargv)
 	if (allowed_providers == NULL) {
 		agent_initialize_allow_list();
 	}
+
+	/* Normalize allow list for later comparison in process_add_smartcard_key. */
+	convertToBackslash(allowed_providers);
+	to_lower_case(allowed_providers);
 
 	if (!StartServiceCtrlDispatcherW(dispatch_table)) {
 		if (GetLastError() == ERROR_FAILED_SERVICE_CONTROLLER_CONNECT) {
